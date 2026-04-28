@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "Booking": {
+      "title": "Booking Request",
+      "description": "A customer request for an apartment booking.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "Guest's full name" },
+        "email": { "type": "string", "format": "email", "description": "Guest's email address" },
+        "phone": { "type": "string", "description": "Guest's phone number" },
+        "roomType": { "type": "string", "description": "Type of room or apartment" },
+        "checkIn": { "type": "string", "description": "Check-in date" },
+        "checkOut": { "type": "string", "description": "Check-out date" },
+        "adults": { "type": "integer", "description": "Number of adults" },
+        "children": { "type": "integer", "description": "Number of children" },
+        "pets": { "type": "boolean", "description": "Whether pets are included" },
+        "type": { "type": "string", "enum": ["Short term", "Long term"], "description": "Rental duration type" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Booking creation timestamp" }
+      },
+      "required": ["fullName", "email", "phone", "roomType", "checkIn", "checkOut"]
+    }
+  },
+  "firestore": {
+    "bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of all booking requests."
+    }
+  }
+}

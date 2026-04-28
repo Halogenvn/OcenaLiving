@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Booking Collection
+    match /bookings/{bookingId} {
+      allow create: if isValidBooking(request.resource.data);
+      allow read, update, delete: if false; // Admin only in future via server/admin SDK
+    }
+
+    // Helper functions
+    function isValidBooking(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'createdAt'])
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && data.phone is string && data.phone.size() <= 30
+        && data.createdAt == request.time;
+    }
+
+    // Internal diagnostic collections (needed for dev environment tests)
+    match /_startup_test/{id} { allow write: if true; }
+    match /_test_connection/{id} { allow write: if true; }
+    match /_startup_ping/{id} { allow write: if true; }
+    match /_client_test/{id} { allow write: if true; }
+  }
+}
