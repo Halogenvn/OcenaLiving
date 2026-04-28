@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "node dist/server.js",
-    "build": "vite build && tsc server.ts --outDir dist --module ESNext --target ES2022 --moduleResolution bundler --allowJs --skipLibCheck",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
