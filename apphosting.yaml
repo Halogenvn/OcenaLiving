@@ -10,3 +10,7 @@ runtime:
 
 buildConfig:
   buildCommand: "npm run build"
+
+runConfig:
+  cpu: 1
+  memoryMiB: 512
