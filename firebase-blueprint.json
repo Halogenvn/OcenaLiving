@@ -9,15 +9,19 @@
         "email": { "type": "string", "format": "email", "description": "Guest's email address" },
         "phone": { "type": "string", "description": "Guest's phone number" },
         "roomType": { "type": "string", "description": "Type of room or apartment" },
-        "checkIn": { "type": "string", "description": "Check-in date" },
-        "checkOut": { "type": "string", "description": "Check-out date" },
+        "checkIn": { "type": "string", "format": "date", "description": "Check-in date" },
+        "checkOut": { "type": "string", "format": "date", "description": "Check-out date" },
         "adults": { "type": "integer", "description": "Number of adults" },
         "children": { "type": "integer", "description": "Number of children" },
         "pets": { "type": "boolean", "description": "Whether pets are included" },
         "type": { "type": "string", "enum": ["Short term", "Long term"], "description": "Rental duration type" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Booking creation timestamp" }
+        "specialRequests": { "type": "string", "description": "Special requests from the guest" },
+        "lang": { "type": "string", "description": "Language used for booking" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"], "description": "Booking status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Booking creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
       },
-      "required": ["fullName", "email", "phone", "roomType", "checkIn", "checkOut"]
+      "required": ["fullName", "email", "phone", "roomType", "checkIn", "checkOut", "createdAt"]
     }
   },
   "firestore": {

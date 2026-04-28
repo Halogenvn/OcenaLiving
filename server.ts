@@ -37,7 +37,7 @@ console.log(`[Firebase] Initialized Client SDK for Firestore. Project: ${firebas
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 8080;
 
   // Test Firestore connectivity on startup
   try {
@@ -199,14 +199,36 @@ async function startServer() {
         </div>
       `;
 
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+      
+      // 2a. Send Email Confirmation to Guest
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Ocena Apartment" <booking@ocena.vn>',
+        from: process.env.SMTP_FROM || '"Ocena Apartment" <booking@ocenaliving.com>',
         to: email,
         subject: subject,
         html: htmlContent,
       });
 
-      res.json({ success: true, message: "Email sent successfully!" });
+      // 2b. Send Notification to Admin (if admin email is configured)
+      if (adminEmail) {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"Ocena Apartment" <booking@ocenaliving.com>',
+          to: adminEmail,
+          subject: `[NEW BOOKING] ${roomType} - ${fullName}`,
+          html: `
+            <h3>New Booking Request Received</h3>
+            <p><strong>Customer:</strong> ${fullName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            <p><strong>Room:</strong> ${roomType}</p>
+            <p><strong>Dates:</strong> ${checkIn} to ${checkOut}</p>
+            <p><strong>Guests:</strong> ${adults} Adults, ${children} Children</p>
+            <p><strong>Language:</strong> ${lang}</p>
+          `
+        });
+      }
+
+      res.json({ success: true, message: "Booking confirmed and emails sent!" });
     } catch (error) {
       console.error("Email sending error:", error);
       res.status(500).json({ error: "Failed to send email confirmation" });
@@ -228,10 +250,9 @@ async function startServer() {
     });
   }
 
-  const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
 
 startServer();

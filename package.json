@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "start": "node dist/server.js"  // <-- Đảm bảo có dòng này để Google biết cách chạy server
-},
+    "dev": "tsx server.ts",
+    "start": "node dist/server.js",
+    "build": "vite build && tsc server.ts --outDir dist --module ESNext --target ES2022 --moduleResolution bundler --allowJs --skipLibCheck",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
@@ -36,6 +38,7 @@
     "typescript": "~5.8.2",
     "vite": "^8.0.10"
   },
-"engines": {
-  "node": "20"
-}}
+  "engines": {
+    "node": "20"
+  }
+}

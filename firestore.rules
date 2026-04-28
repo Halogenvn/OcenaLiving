@@ -1,27 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny
+    // 0. Default deny
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Booking Collection
+    // 1. Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    
+    // 2. Booking Collection
     match /bookings/{bookingId} {
-      allow create: if isValidBooking(request.resource.data);
-      allow read, update, delete: if false; // Admin only in future via server/admin SDK
+      allow create: if isValidBooking(incoming());
+      allow get: if false; // Admin only via admin SDK/server
+      allow list: if false; // Admin only
+      allow update, delete: if false; // Admin only
     }
 
-    // Helper functions
+    // 3. Validation Blueprint
     function isValidBooking(data) {
-      return data.keys().hasAll(['fullName', 'email', 'phone', 'createdAt'])
-        && data.fullName is string && data.fullName.size() <= 100
-        && data.email is string && data.email.size() <= 100
-        && data.phone is string && data.phone.size() <= 30
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'roomType', 'checkIn', 'checkOut', 'createdAt'])
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 100 && data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+        && data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 30
+        && data.roomType is string && data.roomType.size() <= 100
+        // Strict timestamp check
         && data.createdAt == request.time;
     }
 
-    // Internal diagnostic collections (needed for dev environment tests)
+    // Diagnostic collections for platform tests
     match /_startup_test/{id} { allow write: if true; }
     match /_test_connection/{id} { allow write: if true; }
     match /_startup_ping/{id} { allow write: if true; }

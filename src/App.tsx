@@ -42,9 +42,26 @@ import {
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { translations, Language } from './lib/translations';
 
+import { doc, getDocFromServer } from 'firebase/firestore';
+import { db } from './lib/firebase';
+
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const t = translations[lang];
+
+  useEffect(() => {
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log('[Firebase] Client connection verified.');
+      } catch (error) {
+        if(error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    }
+    testConnection();
+  }, []);
 
   const [searchData, setSearchData] = useState({
     type: t.search.shortTermOpt,
@@ -79,6 +96,11 @@ export default function App() {
 
   const isSearchComplete = searchData.checkIn !== '' && searchData.checkOut !== '' && searchData.adults > 0;
 
+  const openGallery = (data: any) => {
+    setViewingGallery(data);
+    setCurrentImageIndex(0);
+  };
+
   const AMENITIES = [
     { icon: 'Wifi', name: t.amenities.list.wifi, desc: t.amenities.list.wifiDesc },
     { icon: 'Waves', name: t.amenities.list.oceanAir, desc: t.amenities.list.oceanAirDesc },
@@ -100,13 +122,13 @@ export default function App() {
       name: 'Rest Studio',
       shortTerm: '450.000đ',
       monthly: '8.000.000đ',
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg?auto=format&fit=crop&q=80&w=800',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg',
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-44_uxiwe9.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931594/Rest-apartment-Studio-Ocena-Mykhe-Danang-45_uttehc.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931591/Rest-apartment-Studio-Ocena-Mykhe-Danang-42_ypqy5y.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931595/Rest-apartment-Studio-Ocena-Mykhe-Danang-46_gir4mv.jpg?auto=format&fit=crop&q=80&w=800'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-44_uxiwe9.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931594/Rest-apartment-Studio-Ocena-Mykhe-Danang-45_uttehc.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931591/Rest-apartment-Studio-Ocena-Mykhe-Danang-42_ypqy5y.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931595/Rest-apartment-Studio-Ocena-Mykhe-Danang-46_gir4mv.jpg'
       ],
       description: t.roomDescription.restStudio,
       features: [t.roomFeatures.queenBed, t.roomFeatures.quiet, t.roomFeatures.fullAmenities],
@@ -118,13 +140,13 @@ export default function App() {
       name: 'Garden view Studio',
       shortTerm: '600.000đ',
       monthly: '11.000.000đ',
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931567/Gargen-view-Studio-Ocena-Mykhe-Danang-14_noy0el.jpg?auto=format&fit=crop&q=80&w=800',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931567/Gargen-view-Studio-Ocena-Mykhe-Danang-14_noy0el.jpg',
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931566/Gargen-view-Studio-Ocena-Mykhe-Danang-11_pff6z6.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931569/Gargen-view-Studio-Ocena-Mykhe-Danang-26_txsqdz.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931567/Gargen-view-Studio-Ocena-Mykhe-Danang-15_a12qea.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931571/Gargen-view-Studio-Ocena-Mykhe-Danang-30_xsi4jp.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931568/Gargen-view-Studio-Ocena-Mykhe-Danang-16_ukxr3z.jpg?auto=format&fit=crop&q=80&w=800'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931566/Gargen-view-Studio-Ocena-Mykhe-Danang-11_pff6z6.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931569/Gargen-view-Studio-Ocena-Mykhe-Danang-26_txsqdz.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931567/Gargen-view-Studio-Ocena-Mykhe-Danang-15_a12qea.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931571/Gargen-view-Studio-Ocena-Mykhe-Danang-30_xsi4jp.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931568/Gargen-view-Studio-Ocena-Mykhe-Danang-16_ukxr3z.jpg'
       ],
       description: t.roomDescription.gardenStudio,
       features: [t.roomFeatures.gardenView, t.roomFeatures.miniKitchen, t.roomFeatures.workspace],
@@ -136,13 +158,13 @@ export default function App() {
       name: 'Seaside Studio',
       shortTerm: '650.000đ',
       monthly: '12.000.000đ',
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931576/Seaside-view-Studio-Ocena-Mykhe-Danang-17_qpbjve.jpg?auto=format&fit=crop&q=80&w=800',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931576/Seaside-view-Studio-Ocena-Mykhe-Danang-17_qpbjve.jpg',
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931577/Seaside-view-Studio-Ocena-Mykhe-Danang-18_k114jm.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931579/Seaside-view-Studio-Ocena-Mykhe-Danang-21_qjuwym.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931580/Seaside-view-Studio-Ocena-Mykhe-Danang-23_afyeet.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931580/Seaside-view-Studio-Ocena-Mykhe-Danang-22_jzcriv.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931581/Seaside-view-Studio-Ocena-Mykhe-Danang-24_ehinzb.jpg?auto=format&fit=crop&q=80&w=800'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931577/Seaside-view-Studio-Ocena-Mykhe-Danang-18_k114jm.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931579/Seaside-view-Studio-Ocena-Mykhe-Danang-21_qjuwym.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931580/Seaside-view-Studio-Ocena-Mykhe-Danang-23_afyeet.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931580/Seaside-view-Studio-Ocena-Mykhe-Danang-22_jzcriv.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931581/Seaside-view-Studio-Ocena-Mykhe-Danang-24_ehinzb.jpg'
       ],  
       description: t.roomDescription.seasideStudio,
       features: [t.roomFeatures.oceanView, t.roomFeatures.miniKitchen, t.roomFeatures.workspace],
@@ -154,13 +176,13 @@ export default function App() {
       name: t.roomFeatures.twoBrLabel,
       shortTerm: '950.000đ',
       monthly: '18.000.000đ',
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931553/2BR-apartment-Ocena-Mykhe-Danang-2_v5ysde.jpg?auto=format&fit=crop&q=80&w=800',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931553/2BR-apartment-Ocena-Mykhe-Danang-2_v5ysde.jpg',
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931552/2BR-apartment-Ocena-Mykhe-Danang-1_b7lxi1.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931555/2BR-apartment-Ocena-Mykhe-Danang-6_pdoffl.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931557/2BR-apartment-Ocena-Mykhe-Danang-39_elbrcp.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931555/2BR-apartment-Ocena-Mykhe-Danang-7_qmogwv.jpg?auto=format&fit=crop&q=80&w=800',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931556/2BR-apartment-Ocena-Mykhe-Danang-8_utzvoc.jpg?auto=format&fit=crop&q=80&w=800'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931552/2BR-apartment-Ocena-Mykhe-Danang-1_b7lxi1.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931555/2BR-apartment-Ocena-Mykhe-Danang-6_pdoffl.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931557/2BR-apartment-Ocena-Mykhe-Danang-39_elbrcp.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931555/2BR-apartment-Ocena-Mykhe-Danang-7_qmogwv.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931556/2BR-apartment-Ocena-Mykhe-Danang-8_utzvoc.jpg'
       ],
       description: t.roomDescription.twoBr,
       features: [t.roomFeatures.twoBrPrivate, t.roomFeatures.twoBath, t.roomFeatures.livingRoom, t.roomFeatures.fullKitchen],
@@ -173,12 +195,12 @@ export default function App() {
     {
       id: 'lobby',
       title: t.commonSpaces.lobby,
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-83_w0u1lk.jpg?auto=format&fit=crop&q=80&w=1200',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-83_w0u1lk.jpg',
       description: t.commonSpaces.lobbyDesc,
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931544/Rent-apartment-Studio-Ocena-Mykhe-Danang-77_xidlha.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-83_w0u1lk.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931545/Rent-apartment-Studio-Ocena-Mykhe-Danang-78_p4y4dc.jpg?auto=format&fit=crop&q=80&w=1200'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931544/Rent-apartment-Studio-Ocena-Mykhe-Danang-77_xidlha.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-83_w0u1lk.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931545/Rent-apartment-Studio-Ocena-Mykhe-Danang-78_p4y4dc.jpg'
       ],
       features: ['Modern Lobby', 'Multi-purpose', 'Social Space'],
       isCommonSpace: true
@@ -186,12 +208,12 @@ export default function App() {
     {
       id: 'surroundings',
       title: t.commonSpaces.surroundings,
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931549/Rent-apartment-Studio-Ocena-Mykhe-Danang-88_wmasgh.jpg?auto=format&fit=crop&q=80&w=1200',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931549/Rent-apartment-Studio-Ocena-Mykhe-Danang-88_wmasgh.jpg',
       description: t.commonSpaces.surroundingsDesc,
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931545/Rent-apartment-Studio-Ocena-Mykhe-Danang-79_ysjmwb.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931549/Rent-apartment-Studio-Ocena-Mykhe-Danang-89_rjlmir.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-82_huifnk.jpg?auto=format&fit=crop&q=80&w=1200'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931545/Rent-apartment-Studio-Ocena-Mykhe-Danang-79_ysjmwb.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931549/Rent-apartment-Studio-Ocena-Mykhe-Danang-89_rjlmir.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931546/Rent-apartment-Studio-Ocena-Mykhe-Danang-82_huifnk.jpg'
       ],
       features: ['Quiet Area', 'Tropical Greenery', 'Sea Breeze'],
       isCommonSpace: true
@@ -199,12 +221,12 @@ export default function App() {
     {
       id: 'balcony',
       title: t.commonSpaces.oceanBalcony,
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-73_hxvszj.jpg?auto=format&fit=crop&q=80&w=1200',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-73_hxvszj.jpg',
       description: t.commonSpaces.oceanBalconyDesc,
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931538/Rent-apartment-Studio-Ocena-Mykhe-Danang-31_ir2h5x.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931541/Rent-apartment-Studio-Ocena-Mykhe-Danang-67_nikvju.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-73_hxvszj.jpg?auto=format&fit=crop&q=80&w=1200'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931538/Rent-apartment-Studio-Ocena-Mykhe-Danang-31_ir2h5x.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931541/Rent-apartment-Studio-Ocena-Mykhe-Danang-67_nikvju.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-73_hxvszj.jpg'
       ],
       features: ['Ocean View', 'Outdoor Work', 'Relaxing Spot'],
       isCommonSpace: true
@@ -212,12 +234,12 @@ export default function App() {
     {
       id: 'rooftop',
       title: t.commonSpaces.rooftop,
-      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931542/Rent-apartment-Studio-Ocena-Mykhe-Danang-69_mkgado.jpg?auto=format&fit=crop&q=80&w=1200',
+      image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931542/Rent-apartment-Studio-Ocena-Mykhe-Danang-69_mkgado.jpg',
       description: t.commonSpaces.rooftopDesc,
       gallery: [
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-70_zqv0k4.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931542/Rent-apartment-Studio-Ocena-Mykhe-Danang-68_ikq1up.jpg?auto=format&fit=crop&q=80&w=1200',
-        'https://res.cloudinary.com/dap0pojyl/image/upload/v1774931539/Rent-apartment-Studio-Ocena-Mykhe-Danang-37_ujy2cp.jpg?auto=format&fit=crop&q=80&w=1200'
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931543/Rent-apartment-Studio-Ocena-Mykhe-Danang-70_zqv0k4.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931542/Rent-apartment-Studio-Ocena-Mykhe-Danang-68_ikq1up.jpg',
+        'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1774931539/Rent-apartment-Studio-Ocena-Mykhe-Danang-37_ujy2cp.jpg'
       ],
       features: ['Panoramic View', 'Laundry Space', 'Exercise Area'],
       isCommonSpace: true
@@ -559,7 +581,7 @@ export default function App() {
           <div className="absolute inset-0 z-0">
             <motion.img 
               style={{ y: backgroundY }}
-              src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1600" 
+              src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=75&w=1400" 
               alt="Coastal view" 
               className="w-full h-full object-cover scale-110"
               referrerPolicy="no-referrer"
@@ -738,7 +760,7 @@ export default function App() {
         </section>
 
         {/* Common Spaces Gallery */}
-        <section className="py-24 bg-white relative overflow-hidden">
+        <section className="py-16 bg-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 text-secondary/15 pointer-events-none">
             <svg viewBox="0 0 200 200" fill="currentColor">
               <circle cx="100" cy="100" r="80" />
@@ -762,10 +784,10 @@ export default function App() {
                   transition={{ delay: idx * 0.1 }}
                   viewport={{ once: true }}
                   className="group relative h-[450px] rounded-[32px] overflow-hidden shadow-xl cursor-pointer"
-                  onClick={() => setViewingGallery(space)}
+                  onClick={() => openGallery(space)}
                   role="listitem"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setViewingGallery(space); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openGallery(space); }}
                   aria-label={`View gallery for ${space.title}`}
                 >
                   {/* Photo Stack Effect */}
@@ -774,7 +796,6 @@ export default function App() {
                       src={space.image} 
                       alt="" 
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
                       loading="lazy"
                     />
                   </div>
@@ -809,7 +830,7 @@ export default function App() {
         </section>
 
         {/* Da Nang Experiences & Mobility Section */}
-        <section className="py-24 bg-aqua/30 relative">
+        <section className="py-16 bg-aqua/30 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
               {/* Experience */}
@@ -884,7 +905,7 @@ export default function App() {
         </section>
 
         {/* Room Types Section */}
-        <section id="rooms" ref={roomsRef} className="py-32 bg-transparent">
+        <section id="rooms" ref={roomsRef} className="py-12 bg-transparent">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-20">
               <h2 className="text-4xl md:text-5xl font-bold text-ocean mb-6">{t.rooms.title}</h2>
@@ -903,12 +924,11 @@ export default function App() {
                       src={room.image} 
                       alt={room.name} 
                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
                       <button 
-                        onClick={() => setViewingGallery(room)}
+                        onClick={() => openGallery(room)}
                         aria-label={`${t.rooms.viewGallery} for ${room.name}`}
                         className="bg-white/20 backdrop-blur-md text-white w-full py-3 rounded-2xl font-bold border border-white/30 hover:bg-white hover:text-ocean transition-all active:scale-95"
                       >
@@ -956,7 +976,7 @@ export default function App() {
         </section>
 
         {/* Amenities Section */}
-        <section id="amenities" className="py-24 bg-transparent relative overflow-hidden">
+        <section id="amenities" className="py-16 bg-transparent relative overflow-hidden">
           {/* Decorative Leaf for Amenities */}
           <div className="absolute top-0 right-0 w-96 h-96 text-ocean/5 -mr-20 -mt-20 rotate-45 pointer-events-none">
             <svg viewBox="0 0 200 200" fill="currentColor">
@@ -1008,17 +1028,15 @@ export default function App() {
               <div className="flex-1 relative">
                 <div className="grid grid-cols-2 gap-4">
                   <img 
-                    src="https://res.cloudinary.com/dap0pojyl/image/upload/v1777300965/1-41_q9mwf1.webp?auto=format&fit=crop&q=80&w=600" 
+                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1777300965/1-41_q9mwf1.webp" 
                     alt="Pool" 
                     className="rounded-3xl h-64 w-full object-cover mt-8"
-                    referrerPolicy="no-referrer"
                     loading="lazy"
                   />
                   <img 
-                    src="https://res.cloudinary.com/dap0pojyl/image/upload/v1777300965/Air_Flow_Sys_qmxeo6.webp?auto=format&fit=crop&q=80&w=600" 
+                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1777300965/Air_Flow_Sys_qmxeo6.webp" 
                     alt="Kitchen" 
                     className="rounded-3xl h-64 w-full object-cover"
-                    referrerPolicy="no-referrer"
                     loading="lazy"
                   />
                 </div>
@@ -1032,7 +1050,7 @@ export default function App() {
         </section>
 
         {/* Detailed Amenities Grid */}
-        <section className="py-24 bg-slate-50 relative overflow-hidden">
+        <section className="py-16 bg-slate-50 relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold text-ocean mb-4">{t.facilities.title}</h2>
@@ -1335,7 +1353,7 @@ export default function App() {
                                 }}
                                 onBlur={(e) => validateField('phone', e.target.value)}
                                 className={`w-full bg-white border ${formErrors.phone ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none text-slate-700`} 
-                                placeholder="090 123 4567" 
+                                placeholder="096 409 0515" 
                               />
                               {formErrors.phone && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{formErrors.phone}</p>}
                             </div>
@@ -1430,7 +1448,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Location Section */}
-        <section id="location" className="py-24 bg-white relative">
+        <section id="location" className="py-16 bg-white relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row gap-12 items-center">
               <div className="lg:w-1/2 space-y-8">
@@ -1548,11 +1566,11 @@ export default function App() {
                   </li>
                   <li className="flex items-center gap-3 text-white/70 text-sm">
                     <Phone size={18} className="flex-shrink-0 text-white/40" />
-                    <span>+84 901 234 567</span>
+                    <span>+84 964 090 515</span>
                   </li>
                   <li className="flex items-center gap-3 text-white/70 text-sm">
                     <Mail size={18} className="flex-shrink-0 text-white/40" />
-                    <span>contact@ocena.vn</span>
+                    <span>booking@ocenaliving.com</span>
                   </li>
                 </ul>
               </div>
@@ -1605,26 +1623,19 @@ export default function App() {
                 <X size={24} aria-hidden="true" />
               </button>
 
-              <div className="flex flex-col md:flex-row h-full overflow-hidden">
-                <div className="md:w-2/3 bg-slate-900 relative flex items-center justify-center p-0 md:p-8">
+              <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-[500px]">
+                <div className="md:w-2/3 bg-slate-900 relative flex items-center justify-center p-0 md:p-4 min-h-[350px]">
                   <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                    <AnimatePresence initial={false}>
+                    <AnimatePresence mode="wait">
                       <motion.img 
-                        key={currentImageIndex}
+                        key={`${viewingGallery.id}-${currentImageIndex}`}
                         src={viewingGallery.gallery[currentImageIndex]} 
                         alt={`${viewingGallery.title || viewingGallery.name} - Image ${currentImageIndex + 1} of ${viewingGallery.gallery.length}`} 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={(_, info) => {
-                          if (info.offset.x < -50) nextImage();
-                          if (info.offset.x > 50) prevImage();
-                        }}
-                        className="absolute inset-0 w-full h-full object-contain cursor-grab active:cursor-grabbing"
-                        referrerPolicy="no-referrer"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="max-w-full max-h-full object-contain cursor-default"
                       />
                     </AnimatePresence>
 
