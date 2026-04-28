@@ -1,0 +1,12 @@
+# Firebase App Hosting configuration file
+# Reference: https://firebase.google.com/docs/app-hosting/configure
+
+kind: "AppHostingYaml"
+schemaVersion: "v1"
+
+runtime:
+  node:
+    version: "20"
+
+buildConfig:
+  buildCommand: "npm run build"
