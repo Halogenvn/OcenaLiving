@@ -1,16 +1,12 @@
-# Firebase App Hosting configuration file
-# Reference: https://firebase.google.com/docs/app-hosting/configure
+kind: AppHostingConfiguration
+schemaVersion: v1
 
-kind: "AppHostingYaml"
-schemaVersion: "v1"
+# Chỉ định lệnh để chạy server của Ocena
+scripts:
+  buildCommand: npm run build
+  runCommand: npx tsx server.ts
 
-runtime:
-  node:
-    version: "20"
-
-buildConfig:
-  buildCommand: "npm run build"
-
+# Cấu hình tài nguyên để chạy ổn định
 runConfig:
   cpu: 1
   memoryMiB: 512

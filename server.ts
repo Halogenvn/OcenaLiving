@@ -39,6 +39,11 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 8080;
 
+// QUAN TRỌNG: Phải có '0.0.0.0' để chạy được trên Cloud
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Ocena Living is live on port ${PORT}`);
+});
+
   // Test Firestore connectivity on startup
   try {
     console.log(`[Firebase] Testing connectivity to database: ${databaseId} (Client SDK)...`);
