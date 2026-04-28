@@ -1,12 +1,10 @@
 kind: AppHostingConfiguration
 schemaVersion: v1
 
-# Chỉ định lệnh để chạy server của Ocena
 scripts:
   buildCommand: npm run build
-  runCommand: npx tsx server.ts
+  runCommand: npm start # Google sẽ chạy lệnh 'node server.js' ở đây
 
-# Cấu hình tài nguyên để chạy ổn định
 runConfig:
   cpu: 1
   memoryMiB: 512
