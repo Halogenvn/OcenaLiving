@@ -38,4 +38,6 @@
     "typescript": "~5.8.2",
     "vite": "^8.0.10"
   }
-}
+"engines": {
+  "node": "20"
+}}
