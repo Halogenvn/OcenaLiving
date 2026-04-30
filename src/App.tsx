@@ -1,5 +1,7 @@
 
 import { useState, useRef, FormEvent, useEffect } from 'react';
+import { CustomCalendar } from './components/CustomCalendar';
+import { differenceInDays, parseISO } from 'date-fns';
 import { 
   Search, 
   Calendar, 
@@ -34,34 +36,45 @@ import {
   PackageCheck,
   StickyNote,
   Loader2,
+  Check,
   Layout,
   WashingMachine,
   Refrigerator,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Fan,
+  ThermometerSun
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { translations, Language } from './lib/translations';
 
-import { doc, getDocFromServer } from 'firebase/firestore';
-import { db } from './lib/firebase';
+const OcenaLogo = ({ className = "w-8 h-8", strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
+  <svg 
+    viewBox="0 0 100 100" 
+    className={className} 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth={strokeWidth}
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    {/* Sun */}
+    <circle cx="50" cy="40" r="18" />
+    {/* Rays */}
+    <line x1="50" y1="12" x2="50" y2="18" />
+    <line x1="28" y1="20" x2="33" y2="25" />
+    <line x1="72" y1="20" x2="67" y2="25" />
+    <line x1="18" y1="40" x2="24" y2="40" />
+    <line x1="82" y1="40" x2="76" y2="40" />
+    
+    {/* Waves */}
+    <path d="M10 65 Q 30 50, 50 65 T 90 65" />
+    <path d="M15 78 Q 35 63, 55 78 T 85 78" />
+  </svg>
+);
 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const t = translations[lang];
-
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log('[Firebase] Client connection verified.');
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration.");
-        }
-      }
-    }
-    testConnection();
-  }, []);
 
   const [searchData, setSearchData] = useState({
     type: t.search.shortTermOpt,
@@ -76,13 +89,17 @@ export default function App() {
   const [viewingGallery, setViewingGallery] = useState<any>(null); // Using any for simplicity in this transition
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [bookingStep, setBookingStep] = useState(1);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
+  const [showSearchCalendar, setShowSearchCalendar] = useState(false);
+  const [showBookingCalendar, setShowBookingCalendar] = useState(false);
   const [bookingFormData, setBookingFormData] = useState({
     fullName: '',
     phone: '',
-    email: ''
+    email: '',
+    quantity: 1 as any,
+    pets: 'Không mang vật nuôi',
+    term: '',
+    price: ''
   });
   const [formErrors, setFormErrors] = useState({
     phone: '',
@@ -102,18 +119,18 @@ export default function App() {
   };
 
   const AMENITIES = [
-    { icon: 'Wifi', name: t.amenities.list.wifi, desc: t.amenities.list.wifiDesc },
-    { icon: 'Waves', name: t.amenities.list.oceanAir, desc: t.amenities.list.oceanAirDesc },
-    { icon: 'UtensilsCrossed', name: t.amenities.list.kitchen, desc: t.amenities.list.kitchenDesc },
-    { icon: 'Tv', name: t.amenities.list.tv, desc: t.amenities.list.tvDesc },
-    { icon: 'Wind', name: t.amenities.list.ac, desc: t.amenities.list.acDesc },
-    { icon: 'Layout', name: t.amenities.list.coworking, desc: t.amenities.list.coworkingDesc },
-    { icon: 'ShieldCheck', name: t.amenities.list.security, desc: t.amenities.list.securityDesc },
-    { icon: 'Coffee', name: t.amenities.list.balcony, desc: t.amenities.list.balconyDesc },
-    { icon: 'WashingMachine', name: t.amenities.list.laundry, desc: t.amenities.list.laundryDesc },
-    { icon: 'Refrigerator', name: t.amenities.list.fridge, desc: t.amenities.list.fridgeDesc },
-    { icon: 'Car', name: t.amenities.list.parking, desc: t.amenities.list.parkingDesc },
-    { icon: 'ArrowUpCircle', name: t.amenities.list.elevator, desc: t.amenities.list.elevatorDesc },
+    { icon: 'Waves', name: t.amenities.list.oceanAir, desc: t.amenities.list.oceanAirDesc, details: t.amenities.list.oceanAirDetails },
+    { icon: 'ArrowUpCircle', name: t.amenities.list.elevator, desc: t.amenities.list.elevatorDesc, details: t.amenities.list.elevatorDetails },
+    { icon: 'Fan', name: t.amenities.list.airExchange, desc: t.amenities.list.airExchangeDesc, details: t.amenities.list.airExchangeDetails },
+    { icon: 'ThermometerSun', name: t.amenities.list.heatPump, desc: t.amenities.list.heatPumpDesc, details: t.amenities.list.heatPumpDetails },
+    { icon: 'Wifi', name: t.amenities.list.wifi, desc: t.amenities.list.wifiDesc, details: t.amenities.list.wifiDetails },
+    { icon: 'Coffee', name: t.amenities.list.balcony, desc: t.amenities.list.balconyDesc, details: t.amenities.list.balconyDetails },
+    { icon: 'ShieldCheck', name: t.amenities.list.security, desc: t.amenities.list.securityDesc, details: t.amenities.list.securityDetails },
+    { icon: 'UtensilsCrossed', name: t.amenities.list.kitchen, desc: t.amenities.list.kitchenDesc, details: t.amenities.list.kitchenDetails },
+    { icon: 'Wind', name: t.amenities.list.ac, desc: t.amenities.list.acDesc, details: t.amenities.list.acDetails },
+    { icon: 'Tv', name: t.amenities.list.tv, desc: t.amenities.list.tvDesc, details: t.amenities.list.tvDetails },
+    { icon: 'Refrigerator', name: t.amenities.list.fridge, desc: t.amenities.list.fridgeDesc, details: t.amenities.list.fridgeDetails },
+    { icon: 'WashingMachine', name: t.amenities.list.laundry, desc: t.amenities.list.laundryDesc, details: t.amenities.list.laundryDetails },
   ];
 
   const ROOM_TYPES = [
@@ -289,9 +306,8 @@ export default function App() {
     }
   };
 
-  const handleSelectRoom = (roomName: string) => {
-    setSelectedRoom(roomName);
-    setBookingStep(1);
+  const handleSelectRoom = (roomId: string) => {
+    setSelectedRoom(roomId);
     setShowBookingSection(true);
     scrollToForm();
   };
@@ -324,44 +340,97 @@ export default function App() {
   const handleBookingSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Validate all fields
-    const isEmailValid = validateField('email', bookingFormData.email);
-    const isPhoneValid = validateField('phone', bookingFormData.phone);
-    const isNameValid = validateField('fullName', bookingFormData.fullName);
-
-    if (!isEmailValid || !isPhoneValid || !isNameValid) return;
-
     setBookingStatus('loading');
-    setBookingErrorMessage(null);
+    
+    // Replace this with your actual Google Apps Script URL
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbylVEtXDp5q6WUjnEJHolXHEzLHpZAkkfAGz5KdlalWW6pWcVNZrsInb5B5guYNFAa_/exec";
+    
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
 
-    const selectedRoomData = ROOM_TYPES.find(r => r.name === selectedRoom);
+    // Get values directly from form for display in success screen
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
+
+    // Validate all fields before submission
+    const isNameValid = validateField('fullName', name);
+    const isPhoneValid = validateField('phone', phone);
+    const isEmailValid = validateField('email', email);
+
+    if (!isNameValid || !isPhoneValid || !isEmailValid) {
+      setBookingStatus('idle');
+      // Scroll to the first error
+      const firstError = document.querySelector('.text-red-500');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    const roomType = ROOM_TYPES.find(r => r.id === selectedRoom)?.name || selectedRoom;
+    const checkin = formData.get('checkin') as string;
+    const checkout = formData.get('checkout') as string;
+    const adults = formData.get('adults_count') || searchData.adults;
+    const children = formData.get('children_count') || searchData.children;
+    const term = formData.get('term') as string;
+    const petsChecked = searchData.pets;
+    
+    const quantityString = lang === 'vi' 
+      ? `${adults} người lớn, ${children} trẻ em` 
+      : `${adults} adults, ${children} children`;
+    
+    formData.set('quantity', quantityString);
+    formData.set('room_type', roomType);
+    formData.set('pets', petsChecked ? (lang === 'vi' ? 'Có mang vật nuôi' : 'With Pets') : (lang === 'vi' ? 'Không mang vật nuôi' : 'No Pets'));
+    
+    // Clean up internal helper fields for Google Sheets submission
+    formData.delete('adults_count');
+    formData.delete('children_count');
+    
+    const currentRoom = ROOM_TYPES.find(r => r.id === selectedRoom);
+    const calculatedPrice = currentRoom 
+      ? (term === t.search.longTermOpt ? currentRoom.monthly : currentRoom.shortTerm) 
+      : '';
+
+    // Pass everything collected to set the form display values for confirmation
+    setBookingFormData({
+      fullName: name,
+      phone: phone,
+      email: email,
+      quantity: quantityString as any,
+      pets: petsChecked ? (lang === 'vi' ? 'Có mang vật nuôi' : 'With Pets') : (lang === 'vi' ? 'Không mang vật nuôi' : 'No Pets'),
+      term: term,
+      price: calculatedPrice
+    } as any);
 
     try {
-      const response = await fetch('/api/booking-confirmation', {
+      await fetch(webAppUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...bookingFormData,
-          roomType: selectedRoom,
-          ...searchData,
-          lang,
-          houseRules: selectedRoomData?.rules || []
-        }),
+        body: formData,
+        mode: 'no-cors'
       });
 
-      if (response.ok) {
-        setBookingStatus('success');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Server error:', errorData);
-        setBookingStatus('error');
-        setBookingErrorMessage(errorData.details || errorData.error || 'Server error');
-      }
+      setBookingStatus('success');
     } catch (error) {
-      console.error('Network or client error:', error);
+      console.error('Error sending request:', error);
+      alert(lang === 'vi' ? "Có lỗi xảy ra. Vui lòng thử lại!" : "An error occurred. Please try again!");
       setBookingStatus('error');
-      setBookingErrorMessage('Network error');
     }
+  };
+
+  const handleBookAnother = () => {
+    setBookingStatus('idle');
+    setBookingFormData({
+      fullName: '',
+      phone: '',
+      email: '',
+      quantity: 1 as any,
+      pets: 'Không mang vật nuôi',
+      term: '',
+      price: ''
+    });
+    // Optional: clear search data to start fresh or keep it
   };
 
   const nextImage = () => {
@@ -419,11 +488,14 @@ export default function App() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex-shrink-0 flex items-center gap-3">
-              <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-lg shadow-gold/20" aria-hidden="true">
-                <Waves className="text-white" size={20} />
+            <div className="flex-shrink-0 flex items-center gap-3 group">
+              <div className="w-12 h-12 bg-ocean rounded-xl flex items-center justify-center shadow-lg shadow-ocean/10 transition-transform group-hover:scale-105" aria-hidden="true">
+                <OcenaLogo className="text-gold w-8 h-8" strokeWidth={2} />
               </div>
-              <span className="text-2xl font-bold tracking-tighter text-ocean">OCENA APARTMENT</span>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold tracking-tighter text-ocean leading-none">OCENA</span>
+                <span className="text-[10px] font-bold tracking-[0.2em] text-gold uppercase mt-0.5">Apartment</span>
+              </div>
             </div>
             
             {/* Desktop Nav */}
@@ -535,7 +607,7 @@ export default function App() {
         </AnimatePresence>
       </header>
 
-      <main className="pt-20 relative overflow-hidden" role="main">
+      <main className="pt-20 relative" role="main">
         {/* Tropical Decorative Elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-20" aria-hidden="true">
           <motion.div 
@@ -577,8 +649,8 @@ export default function App() {
         </div>
 
         {/* Hero Section */}
-        <section id="home" ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center overflow-hidden py-32">
-          <div className="absolute inset-0 z-0">
+        <section id="home" ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center py-32 z-40">
+          <div className="absolute inset-0 z-0 overflow-hidden">
             <motion.img 
               style={{ y: backgroundY }}
               src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=75&w=1400" 
@@ -645,9 +717,9 @@ export default function App() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
-              className="w-[95%] md:w-full max-w-6xl px-4"
+              className="w-[95%] md:w-full max-w-6xl px-4 relative z-[100]"
             >
-              <div className="bg-white/95 backdrop-blur-xl p-2 md:p-3 rounded-[32px] md:rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50">
+              <div className="bg-white p-2 md:p-3 rounded-[32px] md:rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.2)] border border-slate-100">
                 <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-stretch md:items-center gap-1" aria-label="Search for rooms">
                   
                   {/* Stay Type Selector (Vertical) */}
@@ -669,39 +741,79 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+                    <div className="mt-1.5 text-center">
+                      <p className="text-[7px] font-bold text-ocean/50 leading-tight animate-in fade-in slide-in-from-top-0.5 duration-300">
+                        {searchData.type === t.search.shortTermOpt 
+                          ? (lang === 'vi' ? '< 28 nights' : '< 28 nights')
+                          : (lang === 'vi' ? '≥ 28 nights' : '≥ 28 nights')
+                        }
+                      </p>
+                    </div>
                   </div>
 
                   {/* Dates Component (Balanced) */}
-                  <div className="flex-[1.5] flex flex-col md:flex-row items-center">
-                    <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full cursor-pointer relative group">
-                      <label htmlFor="search-check-in" className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkIn}</label>
-                      <input 
-                        id="search-check-in"
-                        type="date" 
-                        value={searchData.checkIn}
-                        onChange={(e) => setSearchData({...searchData, checkIn: e.target.value})}
-                        className="w-full bg-transparent border-none p-0 text-sm font-semibold focus:ring-0 cursor-pointer" 
-                      />
-                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
-                    </div>
+                  <div className="flex-[1.5] relative">
+                    <div 
+                      onClick={() => setShowSearchCalendar(!showSearchCalendar)}
+                      className="flex flex-col md:flex-row items-center cursor-pointer group h-full"
+                    >
+                      <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full relative">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkIn}</label>
+                        <div className="text-sm font-semibold text-ocean">
+                          {searchData.checkIn || 'YYYY-MM-DD'}
+                        </div>
+                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
+                      </div>
 
-                    <div className="flex items-center justify-center -mx-2 z-10 hidden md:flex">
-                      <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300">
-                        <ArrowRight size={12} />
+                      <div className="flex items-center justify-center -mx-2 z-10 hidden md:flex">
+                        <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300">
+                          <ArrowRight size={12} />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full relative">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkOut}</label>
+                        <div className="text-sm font-semibold text-ocean">
+                          {searchData.checkOut || 'YYYY-MM-DD'}
+                        </div>
+                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
                       </div>
                     </div>
 
-                    <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full cursor-pointer relative group">
-                      <label htmlFor="search-check-out" className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkOut}</label>
-                      <input 
-                        id="search-check-out"
-                        type="date" 
-                        value={searchData.checkOut}
-                        onChange={(e) => setSearchData({...searchData, checkOut: e.target.value})}
-                        className="w-full bg-transparent border-none p-0 text-sm font-semibold focus:ring-0 cursor-pointer" 
-                      />
-                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
-                    </div>
+                    {/* Nights Indicator */}
+                    {searchData.checkIn && searchData.checkOut && (
+                      <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-gold text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-20 animate-in zoom-in">
+                        {differenceInDays(parseISO(searchData.checkOut), parseISO(searchData.checkIn))} {t.search.nights}
+                      </div>
+                    )}
+
+                    {/* Search Calendar Popover */}
+                    <AnimatePresence>
+                      {showSearchCalendar && (
+                        <>
+                          <div className="fixed inset-0 z-[110]" onClick={() => setShowSearchCalendar(false)}></div>
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="absolute top-full left-0 right-0 mt-4 z-[120] flex justify-center"
+                          >
+                            <CustomCalendar 
+                              checkIn={searchData.checkIn}
+                              checkOut={searchData.checkOut}
+                              lang={lang}
+                              t={t}
+                              onRangeSelect={(range) => {
+                                setSearchData(prev => ({ ...prev, ...range }));
+                                if (range.checkIn && range.checkOut) {
+                                  setShowSearchCalendar(false);
+                                }
+                              }}
+                            />
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Guests Selector */}
@@ -940,6 +1052,14 @@ export default function App() {
                     </div>
                   </div>
                   <div className="p-8 flex-grow flex flex-col relative">
+                    <button 
+                      onClick={() => handleSelectRoom(room.id)}
+                      aria-label={`${t.rooms.selectRoom} - ${room.name}`}
+                      className="w-full py-4 mb-6 rounded-2xl bg-ocean text-white font-bold hover:bg-ocean/90 transition-all text-sm shadow-lg shadow-teal-900/10 active:scale-[0.98] relative z-10"
+                    >
+                      {t.rooms.selectRoom}
+                    </button>
+
                     {/* Decorative Leaf for Card */}
                     <div className="absolute top-0 right-0 w-24 h-24 text-ocean/5 -mr-8 -mt-8 rotate-12 pointer-events-none">
                       <svg viewBox="0 0 200 200" fill="currentColor">
@@ -960,14 +1080,6 @@ export default function App() {
                         <span className="font-bold text-gold text-lg">{room.monthly}</span>
                       </div>
                     </div>
-
-                    <button 
-                      onClick={() => handleSelectRoom(room.name)}
-                      aria-label={`${t.rooms.selectRoom} - ${room.name}`}
-                      className="w-full py-4 rounded-2xl bg-ocean text-white font-bold hover:bg-ocean/90 transition-all text-sm shadow-lg shadow-teal-900/10 active:scale-[0.98]"
-                    >
-                      {t.rooms.selectRoom}
-                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -976,73 +1088,77 @@ export default function App() {
         </section>
 
         {/* Amenities Section */}
-        <section id="amenities" className="py-16 bg-transparent relative overflow-hidden">
-          {/* Decorative Leaf for Amenities */}
-          <div className="absolute top-0 right-0 w-96 h-96 text-ocean/5 -mr-20 -mt-20 rotate-45 pointer-events-none">
-            <svg viewBox="0 0 200 200" fill="currentColor">
-              <path d="M100 20 C 120 40 130 70 100 100 C 70 70 80 40 100 20 M100 100 C 120 120 130 150 100 180 C 70 150 80 120 100 100" />
-            </svg>
-          </div>
-          <div className="absolute bottom-0 left-0 w-80 h-80 text-ocean/5 -ml-20 -mb-20 -rotate-12 pointer-events-none">
-            <svg viewBox="0 0 200 200" fill="currentColor">
-              <path d="M100 20 C 120 40 130 70 100 100 C 70 70 80 40 100 20 M100 100 C 120 120 130 150 100 180 C 70 150 80 120 100 100" />
-            </svg>
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full text-ocean/5 opacity-10 pointer-events-none">
-            <svg viewBox="0 0 200 200" fill="currentColor" className="w-full h-full">
-              <path d="M100 20 C 120 40 130 70 100 100 C 70 70 80 40 100 20 M100 100 C 120 120 130 150 100 180 C 70 150 80 120 100 100" />
-            </svg>
-          </div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-ocean/10 to-transparent animate-pulse"></div>
+        <section id="amenities" className="py-32 relative overflow-hidden bg-slate-50/50">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-ocean/5 rounded-full blur-[120px] -mr-64 -mt-64"></div>
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[100px] -ml-48 -mb-48"></div>
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1">
-                <h2 className="text-3xl md:text-4xl font-bold text-ocean mb-6">{t.amenities.title}</h2>
-                <p className="text-slate-500 mb-10 leading-relaxed">
-                  {t.amenities.description}
-                </p>
+            <div className="text-center max-w-3xl mx-auto mb-20">
+              <h2 className="text-3xl md:text-5xl font-bold text-ocean mb-6">{t.amenities.title}</h2>
+              <p className="text-slate-500 leading-relaxed text-lg font-light">
+                {t.amenities.description}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {AMENITIES.map((amenity) => {
+                const Icon = {
+                  Wifi, Waves, UtensilsCrossed, Tv, Wind, Layout, ShieldCheck, Coffee, 
+                  WashingMachine, Refrigerator, Car, ArrowUpCircle, Fan, ThermometerSun
+                }[amenity.icon] as any;
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-8">
-                  {AMENITIES.map((amenity) => {
-                    const Icon = {
-                      Wifi, Waves, UtensilsCrossed, Tv, Wind, Layout, ShieldCheck, Coffee, 
-                      WashingMachine, Refrigerator, Car, ArrowUpCircle
-                    }[amenity.icon] as any;
+                return (
+                  <div key={amenity.name} className="flex flex-col p-6 rounded-[32px] bg-white border border-white hover:border-ocean/20 hover:shadow-2xl hover:shadow-ocean/5 transition-all duration-500 group">
+                    <div className="w-12 h-12 shrink-0 rounded-2xl bg-aqua flex items-center justify-center text-ocean group-hover:bg-ocean group-hover:text-white transition-all duration-300 mb-4" aria-hidden="true">
+                      <Icon size={24} />
+                    </div>
                     
-                    return (
-                      <div key={amenity.name} className="flex items-start gap-5 group">
-                        <div className="w-16 h-16 shrink-0 rounded-[24px] bg-aqua flex items-center justify-center text-ocean group-hover:bg-ocean group-hover:text-white transition-all duration-500 border border-white shadow-sm" aria-hidden="true">
-                          <Icon size={32} />
-                        </div>
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-slate-800 text-lg group-hover:text-ocean transition-colors">{amenity.name}</h4>
-                          <p className="text-sm text-slate-500 leading-relaxed font-light">{amenity.desc}</p>
-                        </div>
+                    <h4 className="font-bold text-slate-800 text-base mb-2 group-hover:text-ocean transition-colors">{amenity.name}</h4>
+                    <p className="text-[12px] text-slate-500 leading-relaxed mb-4 font-light">{amenity.desc}</p>
+                    
+                    {amenity.details && (
+                      <div className="mt-auto pt-4 border-t border-slate-50">
+                        <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
+                          {amenity.details.map((detail: string, idx: number) => (
+                            <li key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+                              <div className="w-1 h-1 rounded-full bg-gold/40 shrink-0" />
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div className="relative group">
+                <div className="overflow-hidden rounded-[40px] shadow-2xl">
+                  <img 
+                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1777300965/1-41_q9mwf1.webp" 
+                    alt="Amenities Experience" 
+                    className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                </div>
+                <div className="absolute -bottom-6 -right-6 bg-gold text-white p-8 rounded-[32px] shadow-2xl hidden md:block z-20">
+                  <p className="text-2xl font-bold mb-1">{t.amenities.featureTitle}</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-80">{t.amenities.featureSubtitle}</p>
                 </div>
               </div>
               
-              <div className="flex-1 relative">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="relative group">
+                <div className="overflow-hidden rounded-[40px] shadow-2xl">
                   <img 
-                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1777300965/1-41_q9mwf1.webp" 
-                    alt="Pool" 
-                    className="rounded-3xl h-64 w-full object-cover mt-8"
+                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_1000/v1777300965/Air_Flow_Sys_qmxeo6.webp" 
+                    alt="Modern Systems" 
+                    className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
                   />
-                  <img 
-                    src="https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1777300965/Air_Flow_Sys_qmxeo6.webp" 
-                    alt="Kitchen" 
-                    className="rounded-3xl h-64 w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="absolute -bottom-10 -right-10 bg-gold text-white p-10 rounded-[40px] shadow-2xl hidden md:block">
-                  <p className="text-3xl font-bold mb-2">{t.amenities.featureTitle}</p>
-                  <p className="text-3xs uppercase tracking-[0.3em] font-bold opacity-80">{t.amenities.featureSubtitle}</p>
                 </div>
               </div>
             </div>
@@ -1163,289 +1279,378 @@ export default function App() {
               className="py-24 bg-transparent"
             >
               <div className="max-w-4xl mx-auto px-4">
-                <div className="bg-sand p-8 md:p-12 rounded-[40px] shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 text-ocean/5 -mr-20 -mt-20 rotate-45 pointer-events-none">
-                    <svg viewBox="0 0 200 200" fill="currentColor">
-                      <path d="M100 20 C 120 40 130 70 100 100 C 70 70 80 40 100 20 M100 100 C 120 120 130 150 100 180 C 70 150 80 120 100 100" />
-                    </svg>
-                  </div>
-                  
-                  <div className="relative z-10">
-                    <div className="text-center mb-12">
-                      <h2 className="text-3xl md:text-4xl font-bold text-ocean mb-4">{t.booking.submitRequest}</h2>
-                      <p className="text-slate-600 max-w-lg mx-auto">{t.booking.responsePromise}</p>
+                <div className="bg-sand p-8 md:p-12 rounded-[40px] shadow-2xl relative">
+                  <div className="absolute inset-0 rounded-[40px] overflow-hidden pointer-events-none">
+                    <div className="absolute top-0 right-0 w-64 h-64 text-ocean/5 -mr-20 -mt-20 rotate-45">
+                      <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path d="M100 20 C 120 40 130 70 100 100 C 70 70 80 40 100 20 M100 100 C 120 120 130 150 100 180 C 70 150 80 120 100 100" />
+                      </svg>
                     </div>
-
-                    {!selectedRoom ? (
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-ocean mb-4">{t.booking.noRoomSelected}</h2>
-                        <p className="text-slate-600 mb-8">{t.booking.selectToContinue}</p>
-                        <button 
-                          onClick={() => roomsRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                          className="bg-ocean text-white px-8 py-3 rounded-xl font-bold"
-                        >
-                          {t.booking.viewRooms}
-                        </button>
-                      </div>
-                    ) : bookingStep === 1 ? (
-                      <div>
-                        <div className="text-center mb-10">
-                          <h2 className="text-3xl font-bold text-ocean mb-4">{t.booking.completeInfo}</h2>
-                          <p className="text-slate-600">{t.booking.youSelected}: <span className="font-bold text-ocean">{selectedRoom}</span>. {t.booking.provideTime}</p>
-                        </div>
-                        <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={(e) => { e.preventDefault(); if (isSearchComplete) setBookingStep(2); }}>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.booking.type}</label>
-                            <select 
-                              value={searchData.type}
-                              onChange={(e) => setSearchData({...searchData, type: e.target.value})}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all appearance-none"
-                            >
-                              <option value={t.search.shortTermOpt}>{t.search.shortTermOpt}</option>
-                              <option value={t.search.longTermOpt}>{t.search.longTermOpt}</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.booking.roomType}</label>
-                            <select 
-                              value={selectedRoom || ''}
-                              onChange={(e) => setSelectedRoom(e.target.value)}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all appearance-none"
-                            >
-                              {ROOM_TYPES.map(room => (
-                                <option key={room.id} value={room.name}>{room.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.search.checkIn}</label>
-                            <input 
-                              type="date" 
-                              required
-                              value={searchData.checkIn}
-                              onChange={(e) => setSearchData({...searchData, checkIn: e.target.value})}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all" 
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.search.checkOut}</label>
-                            <input 
-                              type="date" 
-                              required
-                              value={searchData.checkOut}
-                              onChange={(e) => setSearchData({...searchData, checkOut: e.target.value})}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all" 
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.booking.adults}</label>
-                            <input 
-                              type="number" 
-                              required
-                              min="1"
-                              value={searchData.adults}
-                              onChange={(e) => setSearchData({...searchData, adults: parseInt(e.target.value) || 0})}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all" 
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">{t.booking.children}</label>
-                            <input 
-                              type="number" 
-                              min="0"
-                              value={searchData.children}
-                              onChange={(e) => setSearchData({...searchData, children: parseInt(e.target.value) || 0})}
-                              className="w-full bg-white border-none rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all" 
-                            />
-                          </div>
-                          <div className="md:col-span-2 flex items-center gap-3 bg-white/50 p-4 rounded-2xl border border-ocean/5 mt-2">
-                            <input 
-                              type="checkbox" 
-                              id="pet-form" 
-                              checked={searchData.pets}
-                              onChange={(e) => setSearchData({...searchData, pets: e.target.checked})}
-                              className="w-5 h-5 rounded border-slate-300 text-ocean focus:ring-ocean" 
-                            />
-                            <label htmlFor="pet-form" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                              <Dog size={18} className="text-ocean" /> {t.booking.petCheckForm}
-                            </label>
-                          </div>
-                          <div className="md:col-span-2 pt-4">
-                            <button 
-                              type="submit"
-                              className={`w-full py-4 rounded-2xl font-bold transition-all ${isSearchComplete ? 'bg-ocean text-white hover:bg-ocean/90' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
-                            >
-                              {t.booking.nextStep}
-                            </button>
-                            {!isSearchComplete && (
-                              <p className="text-[10px] text-red-400 mt-2 text-center font-medium uppercase tracking-widest">
-                                {t.booking.incompleteSearch}
-                              </p>
-                            )}
-                          </div>
-                        </form>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="text-center mb-10">
-                          <h2 className="text-3xl font-bold text-ocean mb-4">{t.booking.contactInfo}</h2>
-                          <div className="bg-white/50 p-6 rounded-3xl inline-block text-left text-sm space-y-2 border border-ocean/10 shadow-sm w-full max-w-md mx-auto">
-                            <p className="flex items-center gap-2"><span className="text-slate-400 w-24 flex-shrink-0">{t.booking.type}:</span> <span className="font-bold text-secondary">{searchData.type}</span></p>
-                            <p className="flex items-center gap-2"><span className="text-slate-400 w-24 flex-shrink-0">{t.booking.roomType}:</span> <span className="font-bold text-ocean">{selectedRoom}</span></p>
-                            <p className="flex items-center gap-2"><span className="text-slate-400 w-24 flex-shrink-0">{t.search.checkIn}:</span> <span className="font-bold">{searchData.checkIn}</span> <ArrowRight size={12} className="text-slate-300 mx-1" /> <span className="font-bold">{searchData.checkOut}</span></p>
-                            <p className="flex items-center gap-2"><span className="text-slate-400 w-24 flex-shrink-0">{t.search.guests}:</span> <span className="font-bold">{searchData.adults} {t.booking.adults}, {searchData.children} {t.booking.children}</span></p>
-                            <p className="flex items-center gap-2 mb-4"><span className="text-slate-400 w-24 flex-shrink-0">{t.search.petCheck}:</span> <span className={`font-bold ${searchData.pets ? 'text-gold' : 'text-slate-400'}`}>{searchData.pets ? 'Yes' : 'No'}</span></p>
-                            
-                            {/* House Rules Section */}
-                            <div className="pt-4 border-t border-ocean/10 mt-4">
-                              <h3 className="text-[10px] font-bold text-ocean uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <StickyNote size={14} /> {t.gallery.houseRules}
-                              </h3>
-                              <ul className="space-y-1.5">
-                                {ROOM_TYPES.find(r => r.name === selectedRoom)?.rules.map((rule, idx) => (
-                                  <li key={idx} className="text-xs text-slate-500 italic flex items-start gap-2">
-                                    <span className="text-ocean">•</span>
-                                    {rule}
-                                  </li>
-                                ))}
-                              </ul>
+                  </div>
+                    <div className="relative z-10">
+                      {bookingStatus === 'success' ? (
+                        <div className="text-center space-y-8 py-8 animate-in fade-in zoom-in duration-500">
+                          <div className="relative mx-auto w-24 h-24 mb-10">
+                            <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping"></div>
+                            <div className="relative w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl">
+                              <Check size={48} />
                             </div>
-                          </div>
-                        </div>
-
-                        <form onSubmit={handleBookingSubmit} className="space-y-6" aria-label="Booking step 2: Contact Information">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                              <label htmlFor="booking-full-name" className="text-sm font-bold text-slate-700 block ml-1">{t.booking.fullName}</label>
-                              <input 
-                                id="booking-full-name"
-                                name="fullname"
-                                type="text" 
-                                autoComplete="name"
-                                required 
-                                aria-required="true"
-                                value={bookingFormData.fullName}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBookingFormData({...bookingFormData, fullName: val});
-                                  if (formErrors.fullName) validateField('fullName', val);
-                                }}
-                                onBlur={(e) => validateField('fullName', e.target.value)}
-                                className={`w-full bg-white border ${formErrors.fullName ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none text-slate-700`} 
-                                placeholder={t.booking.fullNamePlaceholder} 
-                              />
-                              {formErrors.fullName && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{formErrors.fullName}</p>}
-                            </div>
-                            <div className="space-y-2">
-                              <label htmlFor="booking-phone" className="text-sm font-bold text-slate-700 block ml-1">{t.booking.phone}</label>
-                              <input 
-                                id="booking-phone"
-                                name="phone"
-                                type="tel" 
-                                autoComplete="tel"
-                                required 
-                                aria-required="true"
-                                value={bookingFormData.phone}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setBookingFormData({...bookingFormData, phone: val});
-                                  if (formErrors.phone) validateField('phone', val);
-                                }}
-                                onBlur={(e) => validateField('phone', e.target.value)}
-                                className={`w-full bg-white border ${formErrors.phone ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none text-slate-700`} 
-                                placeholder="096 409 0515" 
-                              />
-                              {formErrors.phone && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{formErrors.phone}</p>}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="booking-email" className="text-sm font-bold text-slate-700 block ml-1">{t.booking.email}</label>
-                            <input 
-                              id="booking-email"
-                              name="email"
-                              type="email" 
-                              autoComplete="email"
-                              required 
-                              aria-required="true"
-                              value={bookingFormData.email}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setBookingFormData({...bookingFormData, email: val});
-                                if (formErrors.email) validateField('email', val);
-                              }}
-                              onBlur={(e) => validateField('email', e.target.value)}
-                              className={`w-full bg-white border ${formErrors.email ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none text-slate-700`} 
-                              placeholder="email@example.com" 
-                            />
-                            {formErrors.email && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{formErrors.email}</p>}
                           </div>
                           
-                          {bookingStatus === 'success' ? (
-                            <div className="space-y-6">
-                              <div className="p-6 bg-green-50 text-green-700 rounded-3xl text-center font-medium border border-green-100">
-                                <PackageCheck className="mx-auto mb-3 text-green-500" size={32} />
-                                {t.booking.successMessage}
+                          <div className="space-y-3">
+                             <h3 className="text-3xl md:text-4xl font-black text-ocean">{lang === 'vi' ? 'Tuyệt vời! Yêu cầu của bạn đã được gửi' : 'Great! Your Request is Sent'}</h3>
+                             <p className="text-slate-600 text-lg font-medium italic max-w-lg mx-auto">
+                               {lang === 'vi' ? 'Cảm ơn bạn đã tin tưởng Ocena House. Chúng tôi sẽ liên hệ trong ít phút để hoàn tất đặt phòng!' : 'Thank you for choosing Ocena House. We will contact you shortly to finalize your stay!'}
+                             </p>
+                          </div>
+
+                          <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-100 shadow-2xl text-left space-y-6 max-w-xl mx-auto relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-ocean/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                             
+                             <h4 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                               <StickyNote size={16} className="text-ocean" />
+                               {lang === 'vi' ? 'Chi tiết yêu cầu' : 'Booking Summary'}
+                             </h4>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Khách hàng' : 'Guest'}</span> 
+                                 <span className="font-bold text-ocean text-lg">{bookingFormData.fullName}</span>
+                               </div>
+                               
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Loại phòng' : 'Selected Room'}</span> 
+                                 <span className="font-bold text-ocean text-lg">
+                                   {selectedRoom === '2br' ? t.roomFeatures.twoBrLabel : 
+                                    ROOM_TYPES.find(r => r.id === selectedRoom)?.name || selectedRoom || 'Rest Studio'}
+                                 </span>
+                               </div>
+
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Kỳ hạn stay' : 'Stay Term'}</span> 
+                                 <span className="font-bold text-ocean">{bookingFormData.term}</span>
+                               </div>
+
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Số lượng khách' : 'Total Guests'}</span> 
+                                 <span className="font-bold text-ocean">{bookingFormData.quantity}</span>
+                               </div>
+
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Thú cưng' : 'Pets Status'}</span> 
+                                 <span className="font-bold text-ocean flex items-center gap-2">
+                                   <Dog size={14} className={bookingFormData.pets.includes('Có') || bookingFormData.pets.includes('With') ? 'text-gold' : 'text-slate-300'} />
+                                   {bookingFormData.pets}
+                                 </span>
+                               </div>
+
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Tiền phòng dự kiến' : 'Estimated Price'}</span> 
+                                 <span className="font-black text-ocean text-xl">{(bookingFormData as any).price}</span>
+                               </div>
+
+                               <div className="space-y-1">
+                                 <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Liên hệ' : 'Contact Information'}</span> 
+                                 <div className="flex flex-col">
+                                   <span className="font-bold text-ocean text-sm">{bookingFormData.phone}</span>
+                                   <span className="text-slate-400 text-[10px]">{bookingFormData.email}</span>
+                                 </div>
+                               </div>
+
+                               <div className="md:col-span-2 pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Ngày Check-in' : 'Check-in'}</span>
+                                    <span className="font-black text-ocean flex items-center gap-2">
+                                      <Calendar size={14} className="text-gold" />
+                                      {searchData.checkIn}
+                                    </span>
+                                  </div>
+                                  <div className="h-8 w-px bg-slate-100"></div>
+                                  <div className="space-y-1 text-right">
+                                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Ngày Check-out' : 'Check-out'}</span>
+                                    <span className="font-black text-ocean flex items-center gap-2 justify-end">
+                                      {searchData.checkOut}
+                                      <Calendar size={14} className="text-gold" />
+                                    </span>
+                                  </div>
+                               </div>
+                             </div>
+
+                             <div className="pt-4 text-center">
+                               <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                                 {lang === 'vi' ? '* Một nhân viên tư vấn sẽ gọi điện cho bạn sớm nhất có thể.' : '* A property advisor will call you as soon as possible.'}
+                               </p>
+                             </div>
+                          </div>
+
+                          <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                            <button 
+                              onClick={handleBookAnother} 
+                              className="bg-ocean text-white px-10 py-5 rounded-2xl font-bold shadow-xl hover:bg-ocean/90 transition-all hover:-translate-y-1 active:translate-y-0 group flex items-center justify-center gap-3"
+                            >
+                               <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                               {lang === 'vi' ? 'Đăng ký phòng khác' : 'Book Another Room'}
+                            </button>
+                            <a 
+                              href="#home" 
+                              onClick={() => setShowBookingSection(false)}
+                              className="bg-white text-ocean border-2 border-ocean/10 px-10 py-5 rounded-2xl font-bold hover:bg-slate-50 transition-all text-center flex items-center justify-center gap-3"
+                            >
+                               {lang === 'vi' ? 'Quay về trang chủ' : 'Return to Home'}
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-center mb-12">
+                            <h2 className="text-3xl md:text-4xl font-bold text-ocean mb-4">{t.booking.submitRequest}</h2>
+                            <p className="text-slate-600 max-w-lg mx-auto mb-6">{t.booking.responsePromise}</p>
+                            {selectedRoom && (
+                              <div className="inline-flex items-center gap-3 bg-white/50 border border-white px-6 py-2 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.booking.youSelected}:</span>
+                                <span className="text-sm font-bold text-ocean">
+                                  {selectedRoom === '2br' ? t.roomFeatures.twoBrLabel : 
+                                   ROOM_TYPES.find(r => r.id === selectedRoom)?.name}
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+    
+                           <form id="bookingForm" onSubmit={handleBookingSubmit} className="space-y-6 text-left">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Row 1: Term & Full Name */}
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{lang === 'vi' ? 'Kỳ hạn' : 'Term'}</label>
+                                <select 
+                                  name="term"
+                                  required 
+                                  value={searchData.type}
+                                  onChange={(e) => setSearchData({...searchData, type: e.target.value})}
+                                  className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none appearance-none"
+                                >
+                                  <option value={t.search.shortTermOpt}>{t.search.shortTermOpt.split(' (')[0]}</option>
+                                  <option value={t.search.longTermOpt}>{t.search.longTermOpt.split(' (')[0]}</option>
+                                </select>
+                                <p className="text-[10px] font-bold text-ocean/60 mt-1.5 ml-1 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                  <StickyNote size={10} />
+                                  {searchData.type === t.search.shortTermOpt 
+                                    ? (lang === 'vi' ? 'Dành cho kỳ hạn lưu trú dưới 28 đêm' : 'For stays under 28 nights')
+                                    : (lang === 'vi' ? 'Dành cho kỳ hạn lưu trú từ 28 đêm trở lên' : 'For stays of 28 nights or more')
+                                  }
+                                </p>
                               </div>
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  setBookingStatus('idle');
-                                  setBookingStep(1);
-                                  setSelectedRoom(null);
-                                  roomsRef.current?.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                                className="w-full bg-ocean text-white py-5 rounded-2xl font-bold text-lg hover:bg-ocean/90 transition-all shadow-xl shadow-teal-900/20 flex items-center justify-center gap-3"
-                              >
-                                {t.booking.bookAnother} <ArrowRight size={20} />
-                              </button>
+
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{t.booking.fullName}</label>
+                                <input 
+                                  name="name"
+                                  type="text" 
+                                  required 
+                                  placeholder={t.booking.fullNamePlaceholder}
+                                  onChange={(e) => validateField('fullName', e.target.value)}
+                                  className={`w-full bg-white border ${formErrors.fullName ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none`} 
+                                />
+                                {formErrors.fullName && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{formErrors.fullName}</p>}
+                              </div>
+
+                              {/* Row 2: Phone & Email */}
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{t.booking.phone}</label>
+                                <input 
+                                  name="phone"
+                                  type="tel" 
+                                  required 
+                                  placeholder="096 409 0515"
+                                  onChange={(e) => validateField('phone', e.target.value)}
+                                  className={`w-full bg-white border ${formErrors.phone ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none`} 
+                                />
+                                {formErrors.phone && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{formErrors.phone}</p>}
+                              </div>
+
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{t.booking.email}</label>
+                                <input 
+                                  name="email"
+                                  type="email" 
+                                  required 
+                                  placeholder="email@example.com"
+                                  onChange={(e) => validateField('email', e.target.value)}
+                                  className={`w-full bg-white border ${formErrors.email ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none`} 
+                                />
+                                {formErrors.email && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{formErrors.email}</p>}
+                              </div>
+
+                              {/* Row 3: Adults & Children */}
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{t.search.adultsLabel}</label>
+                                <input 
+                                  name="adults_count"
+                                  type="number" 
+                                  required 
+                                  min="1"
+                                  defaultValue={searchData.adults}
+                                  className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none" 
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{t.search.childrenLabel}</label>
+                                <input 
+                                  name="children_count"
+                                  type="number" 
+                                  required 
+                                  min="0"
+                                  defaultValue={searchData.children}
+                                  className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none" 
+                                />
+                                <input type="hidden" name="quantity" value="" />
+                              </div>
+
+                              {/* Row 4: Dates selection (Full width) */}
+                              <div className="md:col-span-2 space-y-2 relative">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{lang === 'vi' ? 'Thời gian lưu trú' : 'Stay Duration'}</label>
+                                <div 
+                                  onClick={() => setShowBookingCalendar(!showBookingCalendar)}
+                                  className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus-within:ring-2 focus-within:ring-ocean/20 transition-all outline-none cursor-pointer flex items-center justify-between"
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <Calendar className="text-ocean" size={20} />
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-ocean">
+                                        {searchData.checkIn || 'YYYY-MM-DD'}
+                                      </span>
+                                      <ArrowRight size={14} className="text-slate-300" />
+                                      <span className="font-bold text-ocean">
+                                        {searchData.checkOut || 'YYYY-MM-DD'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {searchData.checkIn && searchData.checkOut && (
+                                    <span className="bg-ocean text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-in zoom-in">
+                                      {differenceInDays(parseISO(searchData.checkOut), parseISO(searchData.checkIn))} {t.search.nights}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <input type="hidden" name="checkin" value={searchData.checkIn} />
+                                <input type="hidden" name="checkout" value={searchData.checkOut} />
+
+                                {/* Booking Calendar Popover */}
+                                <AnimatePresence>
+                                  {showBookingCalendar && (
+                                    <>
+                                      <div className="fixed inset-0 z-[1000]" onClick={() => setShowBookingCalendar(false)}></div>
+                                      <motion.div 
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        className="absolute bottom-full left-0 right-0 mb-4 z-[1001] flex justify-center"
+                                      >
+                                        <CustomCalendar 
+                                          checkIn={searchData.checkIn}
+                                          checkOut={searchData.checkOut}
+                                          lang={lang}
+                                          t={t}
+                                          onRangeSelect={(range) => {
+                                            setSearchData(prev => ({ ...prev, ...range }));
+                                            if (range.checkIn && range.checkOut) {
+                                              setShowBookingCalendar(false);
+                                            }
+                                          }}
+                                        />
+                                      </motion.div>
+                                    </>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+
+                              {/* Row 5: Price Display & Notes (Full width) */}
+                              <div className="md:col-span-2 py-1">
+                                <div className="bg-sand/30 border border-white rounded-[32px] p-6 shadow-inner space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                                        {lang === 'vi' ? 'Giá dự kiến' : 'Estimated Price'}
+                                      </span>
+                                      <span className="text-xs text-slate-500 italic block">
+                                        {searchData.type === t.search.longTermOpt 
+                                          ? (lang === 'vi' ? 'Giá thuê theo tháng' : 'Monthly rent')
+                                          : (lang === 'vi' ? 'Giá thuê theo đêm' : 'Nightly rate')
+                                        }
+                                      </span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-3xl font-black text-ocean animate-in fade-in duration-300">
+                                        {(() => {
+                                          const room = ROOM_TYPES.find(r => r.id === selectedRoom);
+                                          if (!room) return '---';
+                                          return searchData.type === t.search.longTermOpt ? room.monthly : room.shortTerm;
+                                        })()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-4 border-t border-white/50">
+                                    <p className="text-[11px] leading-relaxed text-slate-600 font-medium italic">
+                                      {searchData.type === t.search.longTermOpt ? (
+                                        lang === 'vi' ? 
+                                        '* Giá không bao gồm tiền điện theo mức sử dụng (4,000vnd/KWH) và tiền nước là 50,000vnd/người/tháng.' : 
+                                        '* Price excludes electricity (4,000vnd/KWH) and water (50,000vnd/person/month) based on usage.'
+                                      ) : (
+                                        lang === 'vi' ? 
+                                        '* Giá đã bao gồm tất cả chi phí (all-in). Khách được dọn dẹp hàng tuần và thay khăn tắm, khăn mặt.' : 
+                                        '* All-in price including weekly cleaning and fresh towels replacement.'
+                                      )}
+                                    </p>
+                                  </div>
+
+                                  {/* Pets Checkbox inside price box */}
+                                  <div className="pt-2">
+                                     <button
+                                       type="button"
+                                       onClick={() => setSearchData({...searchData, pets: !searchData.pets})}
+                                       className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${searchData.pets ? 'bg-ocean text-white border-ocean shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
+                                     >
+                                       <Dog size={16} />
+                                       <span className="text-xs font-bold">{lang === 'vi' ? 'Tôi có mang theo thú cưng' : 'I am bringing pets'}</span>
+                                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${searchData.pets ? 'bg-white border-white' : 'bg-transparent border-slate-200'}`}>
+                                          {searchData.pets && <Check size={10} className="text-ocean" />}
+                                       </div>
+                                     </button>
+                                     <input 
+                                       type="checkbox" 
+                                       name="pets" 
+                                       checked={searchData.pets} 
+                                       onChange={() => {}} 
+                                       className="sr-only" 
+                                     />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          ) : (
-                            <>
+
+                            <div className="pt-6">
                               <button 
                                 type="submit" 
                                 disabled={bookingStatus === 'loading'}
-                                aria-busy={bookingStatus === 'loading'}
                                 className="w-full bg-ocean text-white py-5 rounded-2xl font-bold text-lg hover:bg-ocean/90 transition-all shadow-xl shadow-teal-900/20 flex items-center justify-center gap-3 disabled:opacity-50"
                               >
                                 {bookingStatus === 'loading' ? (
-                                  <Loader2 className="animate-spin" size={24} aria-hidden="true" />
+                                  <Loader2 className="animate-spin" size={24} />
                                 ) : (
-                                  <>{t.booking.submitBtn} <ChevronRight size={20} aria-hidden="true" /></>
+                                  <>{lang === 'vi' ? 'Gửi yêu cầu đặt phòng' : 'Send Booking Request'} <ArrowRight size={20} /></>
                                 )}
                               </button>
-                              
-                              {bookingStatus === 'error' && (
-                                <div className="space-y-4 mt-6">
-                                  <div className="p-4 bg-red-100 text-red-800 rounded-2xl text-center font-bold border-2 border-red-200">
-                                    {t.booking.errorMessage}
-                                  </div>
-                                  <div className="p-4 border-2 border-dashed border-red-300 rounded-3xl bg-red-50/50 text-left">
-                                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">{t.booking.errorCodeLabel}</p>
-                                    <div className="text-xs text-red-600 font-mono break-all whitespace-pre-wrap">
-                                      {bookingErrorMessage || 'Unknown Error'}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <button 
-                                type="button"
-                                onClick={() => { setBookingStep(1); setBookingStatus('idle'); }}
-                                className="w-full text-slate-400 text-sm hover:text-ocean transition-all mt-6"
-                              >
-                                {t.booking.backStep}
-                              </button>
-                            </>
-                          )}
-                        </form>
-                      </div>
-                    )}
+                            </div>
+                          </form>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
         {/* Location Section */}
         <section id="location" className="py-16 bg-white relative">
@@ -1543,15 +1748,23 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-16">
               <div className="space-y-6">
-                <span className="text-2xl font-bold tracking-tighter">{t.hero.title.toUpperCase()}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center" aria-hidden="true">
+                    <OcenaLogo className="text-gold w-6 h-6" strokeWidth={2} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold tracking-tighter leading-none">OCENA</span>
+                    <span className="text-[9px] font-bold tracking-[0.2em] text-gold uppercase mt-0.5">Apartment</span>
+                  </div>
+                </div>
                 <p className="text-white/60 text-sm leading-relaxed">
                   {t.footer.description}
                 </p>
                 <div className="flex space-x-4">
-                  <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
+                  <a href="https://www.facebook.com/ocena43/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
                     <Facebook size={20} aria-hidden="true" />
                   </a>
-                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
+                  <a href="https://www.instagram.com/ocenaliving/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
                     <Instagram size={20} aria-hidden="true" />
                   </a>
                 </div>
@@ -1560,17 +1773,37 @@ export default function App() {
               <div className="space-y-6">
                 <h4 className="text-lg font-bold">{t.footer.contact}</h4>
                 <ul className="space-y-4">
-                  <li className="flex items-start gap-3 text-white/70 text-sm">
-                    <MapPin size={18} className="flex-shrink-0 text-white/40" />
-                    <span>{t.footer.address}</span>
+                  <li>
+                    <a 
+                      href="https://maps.app.goo.gl/FSC1P5YPX8ta1sQx8" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3 text-white/70 text-sm hover:text-white transition-all group"
+                      aria-label="View address on Google Maps"
+                    >
+                      <MapPin size={18} className="flex-shrink-0 text-white/40 group-hover:text-gold transition-colors" />
+                      <span>{t.footer.address}</span>
+                    </a>
                   </li>
-                  <li className="flex items-center gap-3 text-white/70 text-sm">
-                    <Phone size={18} className="flex-shrink-0 text-white/40" />
-                    <span>+84 964 090 515</span>
+                  <li>
+                    <a 
+                      href="tel:+84964090515" 
+                      className="flex items-center gap-3 text-white/70 text-sm hover:text-white transition-all group"
+                      aria-label="Call +84 964 090 515"
+                    >
+                      <Phone size={18} className="flex-shrink-0 text-white/40 group-hover:text-gold transition-colors" />
+                      <span>+84 964 090 515</span>
+                    </a>
                   </li>
-                  <li className="flex items-center gap-3 text-white/70 text-sm">
-                    <Mail size={18} className="flex-shrink-0 text-white/40" />
-                    <span>booking@ocenaliving.com</span>
+                  <li>
+                    <a 
+                      href="mailto:booking@ocenaliving.com" 
+                      className="flex items-center gap-3 text-white/70 text-sm hover:text-white transition-all group"
+                      aria-label="Email booking@ocenaliving.com"
+                    >
+                      <Mail size={18} className="flex-shrink-0 text-white/40 group-hover:text-gold transition-colors" />
+                      <span>booking@ocenaliving.com</span>
+                    </a>
                   </li>
                 </ul>
               </div>

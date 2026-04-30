@@ -49,28 +49,46 @@ export const translations = {
       list: {
         wifi: 'Wifi tốc độ cao',
         wifiDesc: 'Kết nối ổn định phục vụ nhu cầu làm việc và giải trí.',
+        wifiDetails: ['Băng thông 100Mbps', 'Phủ sóng toàn bộ tòa nhà', 'Riêng biệt từng căn hộ'],
         oceanAir: 'Không khí biển',
         oceanAirDesc: 'Cảm nhận sự trong lành và gió biển.',
+        oceanAirDetails: ['Cách biển Mỹ Khê 150m', 'Không khí trong lành', 'Gần gũi thiên nhiên'],
         kitchen: 'Bếp tiện nghi',
         kitchenDesc: 'Đầy đủ dụng cụ nấu nướng để bạn tự do trổ tài.',
+        kitchenDetails: ['Bếp từ hiện đại', 'Lò vi sóng, Ấm đun', 'Đầy đủ bát đĩa, xoong nồi'],
         tv: 'Smart TV 4K',
         tvDesc: 'Truy cập Netflix, Youtube với chất lượng hình ảnh sắc nét.',
+        tvDetails: ['Màn hình 50 inch 4K', 'Tích hợp sẵn Netflix, YouTube', 'Âm thanh sống động'],
         ac: 'Điều hòa',
         acDesc: 'Hệ thống làm lạnh nhanh, vận hành êm ái.',
+        acDetails: ['Công nghệ Inverter tiết kiệm điện', 'Làm lạnh nhanh', 'Chế độ vận hành êm ái'],
         coworking: 'Không gian lễ tân',
         coworkingDesc: 'Không gian làm việc chung yên tĩnh và gặp gỡ những người bạn.',
+        coworkingDetails: ['Bàn làm việc rộng rãi', 'Kết nối bạn bè quốc tế', 'Môi trường yên tĩnh'],
         security: 'An ninh 24/7',
-        securityDesc: 'Hệ thống khóa thông minh giúp không cho khách lạ vào nhà và Camera của tòa nhà đảm bảo truy vết an ninh.',
+        securityDesc: 'Hệ thống IP camera 24/7 tại các khu vực chung và hành lang. Chúng tôi sống ngay trong tòa nhà nên luôn sẵn sàng hỗ trợ trực tiếp khi cần thiết.',
+        securityDetails: ['Hệ thống IP Camera 24/7', 'Giám sát hành lang & khu vực chung', 'Chủ nhà hỗ trợ trực tiếp'],
         balcony: 'Ban công chung',
         balconyDesc: 'Tận hưởng gió trời và ngắm nhìn cảnh vật xung quanh.',
+        balconyDetails: ['Không gian mở ngoài trời', 'Gió biển trong lành', 'Khu vực thư giãn lý tưởng'],
         laundry: 'Máy giặt riêng',
         laundryDesc: 'Tiện lợi cho việc giặt giũ trong suốt kỳ lưu trú.',
+        laundryDetails: ['Máy giặt cửa trước hiện đại', 'Có sẵn bột giặt/nước xả', 'Khu vực phơi đồ riêng'],
         fridge: 'Tủ lạnh lớn',
         fridgeDesc: 'Lưu trữ thực phẩm tươi ngon cho cả gia đình.',
+        fridgeDetails: ['Dung tích 200L - 300L', 'Ngăn đông rộng rãi', 'Tiết kiệm điện năng'],
         parking: 'Chỗ đậu xe',
         parkingDesc: 'Khu vực để xe an toàn và rộng rãi miễn phí.',
+        parkingDetails: ['Tầng hầm để xe máy miễn phí', 'An ninh đảm bảo', 'Lối vào rộng rãi'],
         elevator: 'Thang máy',
-        elevatorDesc: 'Di chuyển dễ dàng giữa các tầng trong tòa nhà.'
+        elevatorDesc: 'Di chuyển dễ dàng giữa các tầng trong tòa nhà.',
+        elevatorDetails: ['Thang máy tốc độ cao', 'Bảo trì định kỳ', 'Tiêu chuẩn an toàn cao'],
+        airExchange: 'Hệ thống trao đổi không khí',
+        airExchangeDesc: 'Hệ thống trao đổi không khí giúp chất lượng không khí luôn được đảm bảo.',
+        airExchangeDetails: ['Cung cấp khí tươi liên tục', 'Lọc bụi mịn', 'Cân bằng độ ẩm'],
+        heatPump: 'Nước nóng trung tâm Heat Pump',
+        heatPumpDesc: 'Hệ thống nước nóng heat pump thân thiện môi trường, đáp ứng nước nóng nhanh không phải chờ đợi.',
+        heatPumpDetails: ['Nước nóng 24/24', 'An toàn tuyệt đối', 'Thân thiện môi trường']
       }
     },
     booking: {
@@ -159,7 +177,11 @@ export const translations = {
         workspace: 'Bàn làm việc yên tĩnh',
         workspaceDesc: 'Thiết kế 2 bàn làm việc trong phòng',
         led: 'Hệ thống đèn LED hiện đại',
-        ledDesc: 'Ánh sáng hiện đại với độ hoàn màu cao'
+        ledDesc: 'Ánh sáng hiện đại với độ hoàn màu cao',
+        airExchange: 'Trao đổi không khí',
+        airExchangeDesc: 'Đảm bảo chất lượng khí tươi liên tục',
+        heatPump: 'Nước nóng Heat Pump',
+        heatPumpDesc: 'Tiết kiệm năng lượng, đáp ứng nước nóng tức thì'
       },
       essentials: {
         title: 'Chăm sóc cá nhân',
@@ -250,7 +272,7 @@ export const translations = {
       twoBath: '2 Nhà vệ sinh',
       livingRoom: 'Phòng khách tiện nghi',
       fullKitchen: 'Bếp đầy đủ',
-      twoBrLabel: '2BR (2 Phòng Ngủ)'
+      twoBrLabel: 'Căn 2 phòng ngủ'
     }
   },
   en: {
@@ -300,28 +322,43 @@ export const translations = {
       list: {
         wifi: 'High-speed Wifi',
         wifiDesc: 'Stable connection for work and entertainment.',
+        wifiDetails: ['100Mbps Fiber Optic', 'Full building coverage', 'Dedicated apartment routers'],
         oceanAir: 'Ocean Breeze',
         oceanAirDesc: 'Feel the fresh air and sea breeze.',
+        oceanAirDetails: ['150m from My Khe Beach', 'Fresh coastal atmosphere', 'Natural ventilation'],
         kitchen: 'Equipped Kitchen',
         kitchenDesc: 'Full cooking utensils for you to showcase your skills.',
+        kitchenDetails: ['Modern induction hob', 'Microwave & Kettle', 'Full set of cookware & tableware'],
         tv: '4K Smart TV',
         tvDesc: 'Access Netflix, Youtube with sharp image quality.',
+        tvDetails: ['4K UHD screen', 'Netflix & YouTube integrated', 'Crystal clear sound'],
         ac: 'Air Conditioning',
         acDesc: 'Rapid cooling system, quiet operation.',
+        acDetails: ['Energy-efficient', 'Instant cooling technology', 'Quiet sleep mode'],
         coworking: 'Reception space',
         coworkingDesc: 'Quiet shared workspace and meet new friends.',
+        coworkingDetails: ['Spacious work desks', 'Global networking vibe', 'Serene environment'],
         security: '24/7 Security',
-        securityDesc: 'Smart lock system prevents strangers from entering and building cameras ensure security tracking.',
-        balcony: 'Shared Balcony',
-        balconyDesc: 'Enjoy the fresh air and look at the surroundings.',
+        securityDesc: '24/7 IP camera system in all common areas and hallways. As we live on-site, we are always available to provide direct support and assistance.',
+        securityDetails: ['24/7 IP Camera System', 'Hallway & Common Area Monitoring', 'On-site Owner Support'],
+        balcony: 'Shared Places',
+        balconyDesc: 'Enjoy the fresh air, Chill and look at the surroundings.',
+        balconyDetails: ['Open-air breezy spaces', 'Coastal atmospheric views', 'Perfect chill-out spots'],
         laundry: 'Private Laundry',
         laundryDesc: 'Convenient for washing during your stay.',
+        laundryDetails: ['Private front-load washer', 'Complimentary detergent', 'Dedicated drying area'],
         fridge: 'Large Fridge',
         fridgeDesc: 'Store fresh food for the whole family.',
-        parking: 'Parking Lot',
-        parkingDesc: 'Safe and spacious parking area for free.',
+        fridgeDetails: ['200L - 300L capacity', 'Spacious freezer compartment', 'Energy-efficient operation'],
         elevator: 'Elevator',
-        elevatorDesc: 'Easy movement between floors in the building.'
+        elevatorDesc: 'Easy movement between floors in the building.',
+        elevatorDetails: ['Good-speed lift technology', 'Regular safety maintenance', 'International safety standards'],
+        airExchange: 'Air Exchange System',
+        airExchangeDesc: 'Ensures high air quality and constant fresh air flow throughout the building.',
+        airExchangeDetails: ['Continuous fresh air supply', 'Fine dust filtration', 'Humidity balance control'],
+        heatPump: 'Heat Pump Central Hot Water',
+        heatPumpDesc: 'Eco-friendly central hot water system providing instant hot water without waiting.',
+        heatPumpDetails: ['Instant 24/7 hot water', 'Maximum safety standards', 'Environmentally friendly']
       }
     },
     booking: {
@@ -410,7 +447,11 @@ export const translations = {
         workspace: 'Quiet Workspace',
         workspaceDesc: 'Designed with 2 workspaces in room',
         led: 'Modern LED System',
-        ledDesc: 'Modern lighting with high color rendering'
+        ledDesc: 'Modern lighting with high color rendering',
+        airExchange: 'Air Exchange',
+        airExchangeDesc: 'Ensures constant fresh air quality',
+        heatPump: 'Heat Pump Hot Water',
+        heatPumpDesc: 'Eco-friendly, instant hot water'
       },
       essentials: {
         title: 'Personal Care',
@@ -501,7 +542,7 @@ export const translations = {
       twoBath: '2 Bathrooms',
       livingRoom: 'Comfortable Living Room',
       fullKitchen: 'Full Kitchen',
-      twoBrLabel: '2BR (2 Bedrooms)'
+      twoBrLabel: 'Two Bedroom Apartment'
     }
   }
 };

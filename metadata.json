@@ -1,5 +1,6 @@
 {
-  "name": "Ocena Horizon",
+  "name": "OcenaLiving Website",
   "description": "High-end coastal beachfront apartment rental website.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
