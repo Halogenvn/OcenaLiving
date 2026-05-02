@@ -112,8 +112,8 @@ export default function App() {
     {
       id: 'rest-studio',
       name: 'Rest Studio',
-      shortTerm: '450.000đ',
-      monthly: '8.000.000đ',
+      shortTerm: '500,000đ',
+      monthly: '8,000,000đ',
       image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg',
       gallery: [
         'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931592/Rest-apartment-Studio-Ocena-Mykhe-Danang-43_rq4t8a.jpg',
@@ -130,8 +130,8 @@ export default function App() {
     {
       id: 'garden-studio',
       name: 'Garden view Studio',
-      shortTerm: '600.000đ',
-      monthly: '11.000.000đ',
+      shortTerm: '650,000đ',
+      monthly: '11,000,000đ',
       image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931567/Gargen-view-Studio-Ocena-Mykhe-Danang-14_noy0el.jpg',
       gallery: [
         'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931566/Gargen-view-Studio-Ocena-Mykhe-Danang-11_pff6z6.jpg',
@@ -148,8 +148,8 @@ export default function App() {
     {
       id: 'seaside-studio',
       name: 'Seaside Studio',
-      shortTerm: '650.000đ',
-      monthly: '12.000.000đ',
+      shortTerm: '700,000đ',
+      monthly: '12,000,000đ',
       image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931576/Seaside-view-Studio-Ocena-Mykhe-Danang-17_qpbjve.jpg',
       gallery: [
         'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931577/Seaside-view-Studio-Ocena-Mykhe-Danang-18_k114jm.jpg',
@@ -166,8 +166,8 @@ export default function App() {
     {
       id: '2br',
       name: t.roomFeatures.twoBrLabel,
-      shortTerm: '950.000đ',
-      monthly: '18.000.000đ',
+      shortTerm: '950,000đ',
+      monthly: '18,000,000đ',
       image: 'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_600/v1774931553/2BR-apartment-Ocena-Mykhe-Danang-2_v5ysde.jpg',
       gallery: [
         'https://res.cloudinary.com/dap0pojyl/image/upload/f_auto,q_auto,w_800/v1774931552/2BR-apartment-Ocena-Mykhe-Danang-1_b7lxi1.jpg',
@@ -725,11 +725,17 @@ export default function App() {
               </button>
             </div>
 
-            {/* Mobile menu button */}
-            <div className="md:hidden">
+            {/* Mobile actions */}
+            <div className="md:hidden flex items-center gap-3">
+              <button 
+                onClick={handleBookNowTrigger}
+                className="bg-ocean text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg shadow-teal-900/10 active:scale-95 transition-all"
+              >
+                {t.nav.bookNow}
+              </button>
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)} 
-                className="text-slate-600"
+                className="p-1 text-slate-600"
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
                 aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -1505,7 +1511,7 @@ export default function App() {
                                   name="phone"
                                   type="tel" 
                                   required 
-                                  placeholder="096 409 0515"
+                                  placeholder="+XX 123456789"
                                   onChange={(e) => validateField('phone', e.target.value)}
                                   className={`w-full bg-white border ${formErrors.phone ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none`} 
                                 />
@@ -1687,11 +1693,16 @@ export default function App() {
                               )}
                               <button 
                                 type="submit" 
-                                disabled={bookingStatus === 'loading' || isDatesConflict || !searchData.checkIn || !searchData.checkOut}
-                                className={`w-full py-5 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${isDatesConflict || !searchData.checkIn || !searchData.checkOut ? 'bg-slate-300 text-slate-500 shadow-none' : 'bg-ocean text-white hover:bg-ocean/90 shadow-teal-900/20'}`}
+                                disabled={bookingStatus === 'loading' || bookingStatus === 'success' || isDatesConflict || !searchData.checkIn || !searchData.checkOut}
+                                className={`w-full py-5 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${bookingStatus === 'success' ? 'bg-green-500 text-white shadow-green-900/20' : (isDatesConflict || !searchData.checkIn || !searchData.checkOut ? 'bg-slate-300 text-slate-500 shadow-none' : 'bg-ocean text-white hover:bg-ocean/90 shadow-teal-900/20')}`}
                               >
                                 {bookingStatus === 'loading' ? (
                                   <Loader2 className="animate-spin" size={24} />
+                                ) : bookingStatus === 'success' ? (
+                                  <>
+                                    <Check size={24} />
+                                    {lang === 'vi' ? 'Đã gửi yêu cầu' : 'Sent Successfully'}
+                                  </>
                                 ) : (
                                   <>{lang === 'vi' ? 'Gửi yêu cầu đặt phòng' : 'Send Booking Request'} <ArrowRight size={20} /></>
                                 )}
