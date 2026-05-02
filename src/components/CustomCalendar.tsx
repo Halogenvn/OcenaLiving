@@ -26,14 +26,28 @@ interface CustomCalendarProps {
   onRangeSelect: (range: { checkIn: string; checkOut: string }) => void;
   lang: 'en' | 'vi';
   t: any;
+  disabledDates?: string[];
+  isLoading?: boolean;
 }
 
-export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: CustomCalendarProps) {
+export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t, disabledDates = [], isLoading = false }: CustomCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const locale = lang === 'vi' ? vi : enUS;
 
   const startDate = checkIn ? new Date(checkIn) : null;
   const endDate = checkOut ? new Date(checkOut) : null;
+
+  const isDisabled = (day: Date) => {
+    const dayStart = startOfDay(day);
+    const today = startOfDay(new Date());
+    
+    // Check if it's in the past
+    if (isBefore(dayStart, today)) return true;
+    
+    // Check if it's in the disabledDates list
+    const dateStr = format(dayStart, 'yyyy-MM-dd');
+    return disabledDates.includes(dateStr);
+  };
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -49,9 +63,8 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
 
   const handleDateClick = (day: Date) => {
     const dayStart = startOfDay(day);
-    const today = startOfDay(new Date());
-
-    if (isBefore(dayStart, today)) return;
+    
+    if (isDisabled(dayStart)) return;
 
     if (!startDate || (startDate && endDate)) {
       onRangeSelect({ checkIn: format(dayStart, 'yyyy-MM-dd'), checkOut: '' });
@@ -62,6 +75,13 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
         // Clear if clicking same day
         onRangeSelect({ checkIn: '', checkOut: '' });
       } else {
+        const nightsCount = differenceInDays(dayStart, startDate);
+        if (nightsCount < 2) {
+          // You could show a message here, but let's just make check-in the clicked day
+          // to encourage picking a valid checkout date later
+          onRangeSelect({ checkIn: format(dayStart, 'yyyy-MM-dd'), checkOut: '' });
+          return;
+        }
         onRangeSelect({ checkIn: format(startDate, 'yyyy-MM-dd'), checkOut: format(dayStart, 'yyyy-MM-dd') });
       }
     }
@@ -122,6 +142,7 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
           const isToday = isSameDay(day, new Date());
           const isCurrentMonth = isSameDay(startOfMonth(day), startOfMonth(currentMonth));
           const isPast = isBefore(startOfDay(day), startOfDay(new Date()));
+          const disabled = isDisabled(day);
           const selected = isSelected(day);
           const inRange = isInRange(day);
           const isRangeStart = startDate && isSameDay(day, startDate);
@@ -131,20 +152,25 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
             <button
               key={i}
               type="button"
-              disabled={isPast}
+              disabled={disabled}
               onClick={() => handleDateClick(day)}
               className={`
                 relative h-10 w-10 flex items-center justify-center text-sm font-bold rounded-xl transition-all
                 ${!isCurrentMonth ? 'opacity-20' : ''}
-                ${isPast ? 'text-slate-200 cursor-not-allowed' : 'text-slate-600 hover:bg-ocean/10 hover:text-ocean'}
-                ${selected ? 'bg-ocean text-white hover:bg-ocean' : ''}
+                ${disabled ? 'text-slate-300 cursor-not-allowed bg-slate-50/80 grayscale-[0.5]' : 'text-slate-600 hover:bg-ocean/10 hover:text-ocean'}
+                ${selected ? 'bg-ocean text-white hover:bg-ocean shadow-md' : ''}
                 ${inRange && !selected ? 'bg-ocean/5 text-ocean rounded-none' : ''}
                 ${isRangeStart && endDate ? 'rounded-r-none' : ''}
                 ${isRangeEnd ? 'rounded-l-none' : ''}
                 ${isToday && !selected ? 'border-2 border-gold/30' : ''}
               `}
             >
-              <span className="relative z-10">{format(day, 'd')}</span>
+              <span className={`relative z-10 ${disabled ? 'opacity-30' : ''}`}>{format(day, 'd')}</span>
+              {disabled && isCurrentMonth && !isPast && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+                  <div className="w-8 h-px bg-slate-400 -rotate-45"></div>
+                </div>
+              )}
               {isToday && !selected && (
                 <div className="absolute bottom-1 w-1 h-1 bg-gold rounded-full"></div>
               )}
@@ -155,12 +181,17 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
 
       <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-sand/30 rounded-xl text-gold">
+          <div className="p-2 bg-sand/30 rounded-xl text-gold relative">
             <CalendarIcon size={16} />
+            {isLoading && (
+              <div className="absolute -top-1 -right-1">
+                <div className="w-2 h-2 bg-ocean rounded-full animate-ping"></div>
+              </div>
+            )}
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-              {lang === 'vi' ? 'Thời gian' : 'Duration'}
+              {isLoading ? (lang === 'vi' ? 'Đang cập nhật...' : 'Updating...') : (lang === 'vi' ? 'Thời gian' : 'Duration')}
             </p>
             <p className="text-xs font-bold text-ocean">
               {nights > 0 ? `${nights} ${lang === 'vi' ? 'đêm' : 'nights'}` : '---'}
@@ -168,11 +199,23 @@ export function CustomCalendar({ checkIn, checkOut, onRangeSelect, lang, t }: Cu
           </div>
         </div>
         
+        {startDate && !endDate && (
+          <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-ocean text-white text-[9px] font-bold px-3 py-1 rounded-full shadow-lg animate-bounce">
+            {lang === 'vi' ? 'Tối thiểu 2 đêm' : 'Min 2 nights'}
+          </div>
+        )}
+
         <div className="flex gap-2">
            <div className={`h-2 w-2 rounded-full ${startDate ? 'bg-ocean' : 'bg-slate-200'}`}></div>
            <div className={`h-2 w-2 rounded-full ${endDate ? 'bg-ocean' : 'bg-slate-200'}`}></div>
         </div>
       </div>
+      
+      {isLoading && (
+        <div className="absolute bottom-2 left-0 right-0 text-center">
+          <p className="text-[8px] text-slate-300 font-bold uppercase tracking-widest">Syncing with serverLive...</p>
+        </div>
+      )}
     </div>
   );
 }

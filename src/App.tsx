@@ -1,7 +1,7 @@
 
-import { useState, useRef, FormEvent, useEffect } from 'react';
+import { useState, useRef, FormEvent, useEffect, useMemo } from 'react';
 import { CustomCalendar } from './components/CustomCalendar';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, eachDayOfInterval, format, isWithinInterval, startOfDay } from 'date-fns';
 import { 
   Search, 
   Calendar, 
@@ -36,6 +36,7 @@ import {
   PackageCheck,
   StickyNote,
   Loader2,
+  AlertTriangle,
   Check,
   Layout,
   WashingMachine,
@@ -47,76 +48,50 @@ import {
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { translations, Language } from './lib/translations';
 
-const OcenaLogo = ({ className = "w-8 h-8", strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
+const OcenaLogo = ({ className = "w-8 h-8" }: { className?: string }) => (
   <svg 
     viewBox="0 0 100 100" 
     className={className} 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth={strokeWidth}
+    strokeWidth="2.5"
     strokeLinecap="round" 
     strokeLinejoin="round"
   >
-    {/* Sun */}
-    <circle cx="50" cy="40" r="18" />
-    {/* Rays */}
-    <line x1="50" y1="12" x2="50" y2="18" />
-    <line x1="28" y1="20" x2="33" y2="25" />
-    <line x1="72" y1="20" x2="67" y2="25" />
-    <line x1="18" y1="40" x2="24" y2="40" />
-    <line x1="82" y1="40" x2="76" y2="40" />
+    {/* Wicker Lampshade Dome Shape */}
+    <path 
+      d="M20 75 C 20 50, 30 25, 50 25 C 70 25, 80 50, 80 75 C 70 82, 60 78, 50 82 C 40 78, 30 82, 20 75 Z" 
+      fill="currentColor"
+      fillOpacity="0.1"
+    />
     
-    {/* Waves */}
-    <path d="M10 65 Q 30 50, 50 65 T 90 65" />
-    <path d="M15 78 Q 35 63, 55 78 T 85 78" />
+    {/* Stylized Woven Pattern (Cross-hatching) */}
+    <path d="M35 30 L 35 75" strokeOpacity="0.4" strokeWidth="1" />
+    <path d="M50 25 L 50 82" strokeOpacity="0.4" strokeWidth="1" />
+    <path d="M65 30 L 65 75" strokeOpacity="0.4" strokeWidth="1" />
+    
+    <path d="M25 45 C 40 40, 60 40, 75 45" strokeOpacity="0.4" strokeWidth="1" />
+    <path d="M22 60 C 40 55, 60 55, 78 60" strokeOpacity="0.4" strokeWidth="1" />
+    
+    {/* The Light Bulb in the center */}
+    <circle cx="50" cy="50" r="6" fill="#FBBF24" stroke="none" />
+    <circle cx="50" cy="50" r="10" stroke="#FBBF24" strokeWidth="1" strokeDasharray="2 2" />
+    
+    {/* Hanging Cord */}
+    <line x1="50" y1="10" x2="50" y2="25" strokeWidth="1.5" />
   </svg>
 );
+
+const ROOM_CATEGORIES: Record<string, string[]> = {
+  "Rest Studio": ["101", "102", "201", "202", "301"],
+  "Two Bedroom Apartment": ["302", "402", "502"],
+  "Seaside Studio": ["303", "403"],
+  "Garden View Studio": ["401", "501"]
+};
 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const t = translations[lang];
-
-  const [searchData, setSearchData] = useState({
-    type: t.search.shortTermOpt,
-    checkIn: '',
-    checkOut: '',
-    adults: 1,
-    children: 0,
-    pets: false
-  });
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [showBookingSection, setShowBookingSection] = useState(false);
-  const [viewingGallery, setViewingGallery] = useState<any>(null); // Using any for simplicity in this transition
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [showSearchCalendar, setShowSearchCalendar] = useState(false);
-  const [showBookingCalendar, setShowBookingCalendar] = useState(false);
-  const [bookingFormData, setBookingFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    quantity: 1 as any,
-    pets: 'Không mang vật nuôi',
-    term: '',
-    price: ''
-  });
-  const [formErrors, setFormErrors] = useState({
-    phone: '',
-    email: '',
-    fullName: ''
-  });
-  
-  const bookingFormRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLElement>(null);
-  const roomsRef = useRef<HTMLElement>(null);
-
-  const isSearchComplete = searchData.checkIn !== '' && searchData.checkOut !== '' && searchData.adults > 0;
-
-  const openGallery = (data: any) => {
-    setViewingGallery(data);
-    setCurrentImageIndex(0);
-  };
 
   const AMENITIES = [
     { icon: 'Waves', name: t.amenities.list.oceanAir, desc: t.amenities.list.oceanAirDesc, details: t.amenities.list.oceanAirDetails },
@@ -133,7 +108,7 @@ export default function App() {
     { icon: 'WashingMachine', name: t.amenities.list.laundry, desc: t.amenities.list.laundryDesc, details: t.amenities.list.laundryDetails },
   ];
 
-  const ROOM_TYPES = [
+  const ROOM_TYPES = useMemo(() => [
     {
       id: 'rest-studio',
       name: 'Rest Studio',
@@ -206,7 +181,7 @@ export default function App() {
       included: [t.includedItems.toiletries, t.includedItems.linens, t.includedItems.kitchenware, t.includedItems.bottledWater, t.includedItems.hairdryer, t.includedItems.slippers],
       rules: [t.roomRules.quietHours, t.roomRules.noSmoking, t.roomRules.noParties, t.roomRules.checkIn, t.roomRules.checkOut]
     }
-  ];
+  ], [t]);
 
   const COMMON_SPACES = [
     {
@@ -262,6 +237,172 @@ export default function App() {
       isCommonSpace: true
     }
   ];
+
+  const [searchData, setSearchData] = useState({
+    type: t.search.shortTermOpt,
+    checkIn: '',
+    checkOut: '',
+    adults: 1,
+    children: 0,
+    pets: false
+  });
+
+  // Automate Stay Type (Short-term vs. Long-term) based on nights
+  useEffect(() => {
+    if (searchData.checkIn && searchData.checkOut) {
+      try {
+        const start = parseISO(searchData.checkIn);
+        const end = parseISO(searchData.checkOut);
+        const nights = differenceInDays(end, start);
+        
+        if (nights >= 28) {
+          if (searchData.type !== t.search.longTermOpt) {
+            setSearchData(prev => ({ ...prev, type: t.search.longTermOpt }));
+          }
+        } else {
+          if (searchData.type !== t.search.shortTermOpt) {
+            setSearchData(prev => ({ ...prev, type: t.search.shortTermOpt }));
+          }
+        }
+      } catch (e) {
+        // Fallback or ignore parse errors
+      }
+    }
+  }, [searchData.checkIn, searchData.checkOut, t.search.shortTermOpt, t.search.longTermOpt]);
+
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  
+  const [bookedRooms, setBookedRooms] = useState<Record<string, { from: string; to: string }[]>>({});
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbwfEWQrngEw9SbJXDjB71UOwQ9J_QQEkCz1AXFQ52xNaCX3EP3pPoHEhwgnvuNIUV_r/exec");
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        if (data && typeof data === 'object') {
+          setBookedRooms(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability:", error);
+      } finally {
+        setIsAvailabilityLoading(false);
+      }
+    };
+    fetchAvailability();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchAvailability, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getSoldOutDates = (roomType: string) => {
+    // Case-insensitive matching
+    const categoryKey = Object.keys(ROOM_CATEGORIES).find(
+      key => key.toLowerCase() === roomType.toLowerCase()
+    );
+    const physicalRooms = categoryKey ? ROOM_CATEGORIES[categoryKey] : [];
+    
+    if (physicalRooms.length === 0) return [];
+
+    const dateCounts: Record<string, number> = {};
+
+    physicalRooms.forEach(roomNum => {
+      const bookings = bookedRooms[roomNum] || [];
+      bookings.forEach(booking => {
+        try {
+          const start = startOfDay(parseISO(booking.from));
+          const end = startOfDay(parseISO(booking.to));
+          
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+          if (start > end) return;
+
+          // Standard hotel logic: the 'to' date is check-out day, so it's available for next guest.
+          // We only count nights spent.
+          const daysInInterval = eachDayOfInterval({ start, end });
+          
+          // Exclude the last day (check-out day) from being marked as occupied
+          const nightsOccupied = daysInInterval.slice(0, -1);
+          
+          nightsOccupied.forEach(day => {
+            const dateStr = format(day, "yyyy-MM-dd");
+            dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+          });
+        } catch (e) {
+          console.error("Error parsing booking dates:", e);
+        }
+      });
+    });
+
+    return Object.keys(dateCounts).filter(date => dateCounts[date] >= physicalRooms.length);
+  };
+
+  const currentSoldOutDates = useMemo(() => {
+    if (!selectedRoom) return [];
+    const room = ROOM_TYPES.find(r => r.id === selectedRoom);
+    if (!room) return [];
+    
+    // The logic needs to match the category name used in ROOM_CATEGORIES
+    let catName = room.name;
+    if (room.id === '2br') catName = "Two Bedroom Apartment";
+    // Standardize naming across systems
+    if (room.id === 'garden-studio') catName = "Garden View Studio";
+    if (room.id === 'seaside-studio') catName = "Seaside Studio";
+    if (room.id === 'rest-studio') catName = "Rest Studio";
+    
+    return getSoldOutDates(catName);
+  }, [selectedRoom, bookedRooms, ROOM_TYPES]);
+
+  const isDatesConflict = useMemo(() => {
+    if (!searchData.checkIn || !searchData.checkOut || currentSoldOutDates.length === 0) return false;
+    
+    try {
+      const start = startOfDay(parseISO(searchData.checkIn));
+      const end = startOfDay(parseISO(searchData.checkOut));
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) return false;
+      
+      const selectedDays = eachDayOfInterval({ start, end });
+      // Exclude check-out day
+      const nights = selectedDays.slice(0, -1);
+      return nights.some(day => currentSoldOutDates.includes(format(day, 'yyyy-MM-dd')));
+    } catch (e) {
+      return false;
+    }
+  }, [searchData.checkIn, searchData.checkOut, currentSoldOutDates]);
+
+  const [showBookingSection, setShowBookingSection] = useState(false);
+  const [viewingGallery, setViewingGallery] = useState<any>(null); // Using any for simplicity in this transition
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [showSearchCalendar, setShowSearchCalendar] = useState(false);
+  const [showBookingCalendar, setShowBookingCalendar] = useState(false);
+  const [bookingFormData, setBookingFormData] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    quantity: 1 as any,
+    pets: 'Không mang vật nuôi',
+    term: '',
+    price: ''
+  });
+  const [formErrors, setFormErrors] = useState({
+    phone: '',
+    email: '',
+    fullName: ''
+  });
+  
+  const bookingFormRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const roomsRef = useRef<HTMLElement>(null);
+
+  const isSearchComplete = searchData.checkIn !== '' && searchData.checkOut !== '' && searchData.adults > 0;
+
+  const openGallery = (data: any) => {
+    setViewingGallery(data);
+    setCurrentImageIndex(0);
+  };
 
   const EXPERIENCES = [
     { icon: UtensilsCrossed, title: t.experience.food, desc: t.experience.foodDesc },
@@ -371,6 +512,13 @@ export default function App() {
     const roomType = ROOM_TYPES.find(r => r.id === selectedRoom)?.name || selectedRoom;
     const checkin = formData.get('checkin') as string;
     const checkout = formData.get('checkout') as string;
+
+    if (!checkin || !checkout) {
+      alert(lang === 'vi' ? 'Vui lòng chọn ngày nhận và trả phòng' : 'Please select check-in and check-out dates');
+      setBookingStatus('idle');
+      return;
+    }
+
     const adults = formData.get('adults_count') || searchData.adults;
     const children = formData.get('children_count') || searchData.children;
     const term = formData.get('term') as string;
@@ -380,6 +528,37 @@ export default function App() {
       ? `${adults} người lớn, ${children} trẻ em` 
       : `${adults} adults, ${children} children`;
     
+    // Validate availability one last time before submission
+    if (checkin && checkout && selectedRoom) {
+      const room = ROOM_TYPES.find(r => r.id === selectedRoom);
+      if (room) {
+        let catName = room.name;
+        if (room.id === '2br') catName = "Two Bedroom Apartment";
+        if (room.id === 'garden-studio') catName = "Garden View Studio";
+        if (room.id === 'seaside-studio') catName = "Seaside Studio";
+        if (room.id === 'rest-studio') catName = "Rest Studio";
+        
+        const soldOutDates = getSoldOutDates(catName);
+        const start = startOfDay(parseISO(checkin));
+        const end = startOfDay(parseISO(checkout));
+        
+        try {
+          const selectedDays = eachDayOfInterval({ start, end });
+          const overlap = selectedDays.some(day => soldOutDates.includes(format(day, 'yyyy-MM-dd')));
+          
+          if (overlap) {
+            alert(lang === 'vi' 
+              ? "Rất tiếc, một số ngày trong khoảng thời gian bạn chọn đã hết phòng. Vui lòng chọn ngày khác." 
+              : "Sorry, some days in your selected range are sold out. Please choose other dates.");
+            setBookingStatus('idle');
+            return;
+          }
+        } catch (e) {
+          console.error("Validation error:", e);
+        }
+      }
+    }
+
     formData.set('quantity', quantityString);
     formData.set('room_type', roomType);
     formData.set('pets', petsChecked ? (lang === 'vi' ? 'Có mang vật nuôi' : 'With Pets') : (lang === 'vi' ? 'Không mang vật nuôi' : 'No Pets'));
@@ -490,7 +669,7 @@ export default function App() {
           <div className="flex justify-between items-center h-20">
             <div className="flex-shrink-0 flex items-center gap-3 group">
               <div className="w-12 h-12 bg-ocean rounded-xl flex items-center justify-center shadow-lg shadow-ocean/10 transition-transform group-hover:scale-105" aria-hidden="true">
-                <OcenaLogo className="text-gold w-8 h-8" strokeWidth={2} />
+                <OcenaLogo className="text-gold w-8 h-8" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold tracking-tighter text-ocean leading-none">OCENA</span>
@@ -649,7 +828,7 @@ export default function App() {
         </div>
 
         {/* Hero Section */}
-        <section id="home" ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center py-32 z-40">
+        <section id="home" ref={heroRef} className="relative min-h-[70vh] flex items-center justify-center py-24 z-40">
           <div className="absolute inset-0 z-0 overflow-hidden">
             <motion.img 
               style={{ y: backgroundY }}
@@ -676,7 +855,7 @@ export default function App() {
           </div>
 
           <div className="relative z-10 w-full flex flex-col items-center">
-            <div className="text-center px-4 max-w-5xl mb-12 md:mb-16">
+            <div className="text-center px-4 max-w-5xl">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -711,163 +890,6 @@ export default function App() {
                 </p>
               </motion.div>
             </div>
-
-            {/* Optimized Search Bar */}
-            <motion.div 
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="w-[95%] md:w-full max-w-6xl px-4 relative z-[100]"
-            >
-              <div className="bg-white p-2 md:p-3 rounded-[32px] md:rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.2)] border border-slate-100">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-stretch md:items-center gap-1" aria-label="Search for rooms">
-                  
-                  {/* Stay Type Selector (Vertical) */}
-                  <div className="flex-shrink-0 p-3 md:px-6 border-b md:border-b-0 md:border-r border-slate-100 flex flex-col justify-center gap-1.5 min-w-[140px]">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5 text-center">{t.search.type}</span>
-                    <div className="bg-slate-100/50 p-1 rounded-2xl flex flex-col gap-1">
-                      {[t.search.shortTermOpt, t.search.longTermOpt].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setSearchData({ ...searchData, type: option })}
-                          className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all text-center ${
-                            searchData.type === option 
-                              ? "bg-white text-ocean shadow-sm" 
-                              : "text-slate-400 hover:text-slate-600"
-                          }`}
-                        >
-                          {option.split(' (')[0]}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-1.5 text-center">
-                      <p className="text-[7px] font-bold text-ocean/50 leading-tight animate-in fade-in slide-in-from-top-0.5 duration-300">
-                        {searchData.type === t.search.shortTermOpt 
-                          ? (lang === 'vi' ? '< 28 nights' : '< 28 nights')
-                          : (lang === 'vi' ? '≥ 28 nights' : '≥ 28 nights')
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Dates Component (Balanced) */}
-                  <div className="flex-[1.5] relative">
-                    <div 
-                      onClick={() => setShowSearchCalendar(!showSearchCalendar)}
-                      className="flex flex-col md:flex-row items-center cursor-pointer group h-full"
-                    >
-                      <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full relative">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkIn}</label>
-                        <div className="text-sm font-semibold text-ocean">
-                          {searchData.checkIn || 'YYYY-MM-DD'}
-                        </div>
-                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
-                      </div>
-
-                      <div className="flex items-center justify-center -mx-2 z-10 hidden md:flex">
-                        <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300">
-                          <ArrowRight size={12} />
-                        </div>
-                      </div>
-
-                      <div className="flex-1 w-full p-3 md:px-8 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full relative">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.checkOut}</label>
-                        <div className="text-sm font-semibold text-ocean">
-                          {searchData.checkOut || 'YYYY-MM-DD'}
-                        </div>
-                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover:text-ocean transition-colors" size={16} />
-                      </div>
-                    </div>
-
-                    {/* Nights Indicator */}
-                    {searchData.checkIn && searchData.checkOut && (
-                      <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-gold text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-20 animate-in zoom-in">
-                        {differenceInDays(parseISO(searchData.checkOut), parseISO(searchData.checkIn))} {t.search.nights}
-                      </div>
-                    )}
-
-                    {/* Search Calendar Popover */}
-                    <AnimatePresence>
-                      {showSearchCalendar && (
-                        <>
-                          <div className="fixed inset-0 z-[110]" onClick={() => setShowSearchCalendar(false)}></div>
-                          <motion.div 
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute top-full left-0 right-0 mt-4 z-[120] flex justify-center"
-                          >
-                            <CustomCalendar 
-                              checkIn={searchData.checkIn}
-                              checkOut={searchData.checkOut}
-                              lang={lang}
-                              t={t}
-                              onRangeSelect={(range) => {
-                                setSearchData(prev => ({ ...prev, ...range }));
-                                if (range.checkIn && range.checkOut) {
-                                  setShowSearchCalendar(false);
-                                }
-                              }}
-                            />
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Guests Selector */}
-                  <div className="flex-shrink-0 p-3 md:px-8 border-t md:border-t-0 md:border-l border-slate-100 text-left hover:bg-slate-50 transition-all rounded-3xl md:rounded-full cursor-pointer relative group min-w-[200px]">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{t.search.guests}</span>
-                    
-                    <div className="flex flex-col gap-2">
-                       {/* Row 1: Adults */}
-                       <div className="flex items-center justify-between gap-4">
-                         <span className="text-[11px] font-bold text-slate-600">{t.search.adultsLabel}</span>
-                         <div className="flex items-center gap-2 bg-slate-100/50 p-0.5 rounded-full">
-                           <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setSearchData({...searchData, adults: Math.max(1, searchData.adults - 1)}); }}
-                            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 hover:bg-ocean hover:text-white transition-all shadow-sm"
-                           >-</button>
-                           <span className="text-xs font-bold w-4 text-center">{searchData.adults}</span>
-                           <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setSearchData({...searchData, adults: Math.min(10, searchData.adults + 1)}); }}
-                            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 hover:bg-ocean hover:text-white transition-all shadow-sm"
-                           >+</button>
-                         </div>
-                       </div>
-
-                       {/* Row 2: Children */}
-                       <div className="flex items-center justify-between gap-4">
-                         <span className="text-[11px] font-bold text-slate-600">{t.search.childrenLabel}</span>
-                         <div className="flex items-center gap-2 bg-slate-100/50 p-0.5 rounded-full">
-                           <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setSearchData({...searchData, children: Math.max(0, searchData.children - 1)}); }}
-                            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 hover:bg-ocean hover:text-white transition-all shadow-sm"
-                           >-</button>
-                           <span className="text-xs font-bold w-4 text-center">{searchData.children}</span>
-                           <button 
-                            type="button" 
-                            onClick={(e) => { e.stopPropagation(); setSearchData({...searchData, children: Math.min(10, searchData.children + 1)}); }}
-                            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 hover:bg-ocean hover:text-white transition-all shadow-sm"
-                           >+</button>
-                         </div>
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* Search Button */}
-                  <div className="p-2 flex-shrink-0">
-                    <button type="submit" className="h-14 w-full md:w-14 md:h-14 bg-ocean text-white rounded-full font-bold hover:bg-ocean/90 transition-all flex items-center justify-center gap-2 shadow-xl shadow-teal-900/20 active:scale-[0.98]">
-                      <Search size={22} /><span className="md:hidden">{t.search.searchBtn}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
           </div>
         </section>
 
@@ -1073,11 +1095,15 @@ export default function App() {
                     <div className="space-y-4 mb-8 bg-white/50 p-5 rounded-3xl border border-slate-100">
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-400 font-medium">{t.rooms.shortTermPrice}</span>
-                        <span className="font-bold text-ocean text-lg">{room.shortTerm}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-ocean text-lg">{room.shortTerm}</span>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-400 font-medium">{t.rooms.monthlyPrice}</span>
-                        <span className="font-bold text-gold text-lg">{room.monthly}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-gold text-lg">{room.monthly}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1346,7 +1372,10 @@ export default function App() {
 
                                <div className="space-y-1">
                                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px] block">{lang === 'vi' ? 'Tiền phòng dự kiến' : 'Estimated Price'}</span> 
-                                 <span className="font-black text-ocean text-xl">{(bookingFormData as any).price}</span>
+                                 <span className="font-black text-ocean text-xl">
+                                   <span className="text-xs font-bold mr-1 italic">{lang === 'vi' ? 'Từ' : 'From'}</span>
+                                   {(bookingFormData as any).price}
+                                 </span>
                                </div>
 
                                <div className="space-y-1">
@@ -1405,32 +1434,48 @@ export default function App() {
                           <div className="text-center mb-12">
                             <h2 className="text-3xl md:text-4xl font-bold text-ocean mb-4">{t.booking.submitRequest}</h2>
                             <p className="text-slate-600 max-w-lg mx-auto mb-6">{t.booking.responsePromise}</p>
-                            {selectedRoom && (
-                              <div className="inline-flex items-center gap-3 bg-white/50 border border-white px-6 py-2 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.booking.youSelected}:</span>
-                                <span className="text-sm font-bold text-ocean">
-                                  {selectedRoom === '2br' ? t.roomFeatures.twoBrLabel : 
-                                   ROOM_TYPES.find(r => r.id === selectedRoom)?.name}
-                                 </span>
-                               </div>
-                             )}
                            </div>
     
                            <form id="bookingForm" onSubmit={handleBookingSubmit} className="space-y-6 text-left">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Row 0: Room Type Selection */}
+                              <div className="md:col-span-2 space-y-2">
+                                <label className="text-sm font-bold text-slate-700 block ml-1">{lang === 'vi' ? 'Loại phòng bạn chọn' : 'Room Type'}</label>
+                                <div className="relative group">
+                                  <select 
+                                    name="room_type"
+                                    required 
+                                    value={selectedRoom || ''}
+                                    onChange={(e) => setSelectedRoom(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none appearance-none font-bold text-ocean"
+                                  >
+                                    <option value="" disabled>{lang === 'vi' ? 'Chọn loại phòng' : 'Select Room Type'}</option>
+                                    {ROOM_TYPES.map(room => (
+                                      <option key={room.id} value={room.id}>{room.name}</option>
+                                    ))}
+                                  </select>
+                                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-ocean transition-colors">
+                                    <ArrowRight size={20} className="rotate-90" />
+                                  </div>
+                                </div>
+                              </div>
+
                               {/* Row 1: Term & Full Name */}
                               <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700 block ml-1">{lang === 'vi' ? 'Kỳ hạn' : 'Term'}</label>
-                                <select 
-                                  name="term"
-                                  required 
-                                  value={searchData.type}
-                                  onChange={(e) => setSearchData({...searchData, type: e.target.value})}
-                                  className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 shadow-sm focus:ring-2 focus:ring-ocean/20 transition-all outline-none appearance-none"
-                                >
-                                  <option value={t.search.shortTermOpt}>{t.search.shortTermOpt.split(' (')[0]}</option>
-                                  <option value={t.search.longTermOpt}>{t.search.longTermOpt.split(' (')[0]}</option>
-                                </select>
+                                <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 shadow-inner text-ocean font-bold flex items-center justify-between">
+                                  <span>
+                                    {searchData.type === t.search.shortTermOpt 
+                                      ? t.search.shortTermOpt.split(' (')[0]
+                                      : t.search.longTermOpt.split(' (')[0]}
+                                  </span>
+                                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-slate-100 shadow-sm">
+                                    {searchData.checkIn && searchData.checkOut 
+                                      ? `${differenceInDays(parseISO(searchData.checkOut), parseISO(searchData.checkIn))} ${t.search.nights}`
+                                      : '--'}
+                                  </span>
+                                </div>
+                                <input type="hidden" name="term" value={searchData.type} />
                                 <p className="text-[10px] font-bold text-ocean/60 mt-1.5 ml-1 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
                                   <StickyNote size={10} />
                                   {searchData.type === t.search.shortTermOpt 
@@ -1551,6 +1596,8 @@ export default function App() {
                                           checkOut={searchData.checkOut}
                                           lang={lang}
                                           t={t}
+                                          disabledDates={currentSoldOutDates}
+                                          isLoading={isAvailabilityLoading}
                                           onRangeSelect={(range) => {
                                             setSearchData(prev => ({ ...prev, ...range }));
                                             if (range.checkIn && range.checkOut) {
@@ -1581,6 +1628,7 @@ export default function App() {
                                     </div>
                                     <div className="text-right">
                                       <span className="text-3xl font-black text-ocean animate-in fade-in duration-300">
+                                        <span className="text-sm font-bold mr-1 italic">{lang === 'vi' ? 'Từ' : 'From'}</span>
                                         {(() => {
                                           const room = ROOM_TYPES.find(r => r.id === selectedRoom);
                                           if (!room) return '---';
@@ -1592,15 +1640,7 @@ export default function App() {
 
                                   <div className="pt-4 border-t border-white/50">
                                     <p className="text-[11px] leading-relaxed text-slate-600 font-medium italic">
-                                      {searchData.type === t.search.longTermOpt ? (
-                                        lang === 'vi' ? 
-                                        '* Giá không bao gồm tiền điện theo mức sử dụng (4,000vnd/KWH) và tiền nước là 50,000vnd/người/tháng.' : 
-                                        '* Price excludes electricity (4,000vnd/KWH) and water (50,000vnd/person/month) based on usage.'
-                                      ) : (
-                                        lang === 'vi' ? 
-                                        '* Giá đã bao gồm tất cả chi phí (all-in). Khách được dọn dẹp hàng tuần và thay khăn tắm, khăn mặt.' : 
-                                        '* All-in price including weekly cleaning and fresh towels replacement.'
-                                      )}
+                                      {searchData.type === t.search.longTermOpt ? t.booking.longTermNote : t.booking.shortTermNote}
                                     </p>
                                   </div>
 
@@ -1630,10 +1670,25 @@ export default function App() {
                             </div>
 
                             <div className="pt-6">
+                              {isDatesConflict && (
+                                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                                  <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={18} />
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-bold text-red-600">
+                                      {lang === 'vi' ? 'Lịch đã có khách' : 'Dates unavailable'}
+                                    </p>
+                                    <p className="text-xs text-red-500/80 font-medium">
+                                      {lang === 'vi' 
+                                        ? 'Một số ngày trong khoảng thời gian bạn chọn đã có khách đặt. Vui lòng chọn loại phòng khác hoặc ngày khác.' 
+                                        : 'Some dates in your selection are already booked. Please choose another room type or different dates.'}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                               <button 
                                 type="submit" 
-                                disabled={bookingStatus === 'loading'}
-                                className="w-full bg-ocean text-white py-5 rounded-2xl font-bold text-lg hover:bg-ocean/90 transition-all shadow-xl shadow-teal-900/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                                disabled={bookingStatus === 'loading' || isDatesConflict || !searchData.checkIn || !searchData.checkOut}
+                                className={`w-full py-5 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${isDatesConflict || !searchData.checkIn || !searchData.checkOut ? 'bg-slate-300 text-slate-500 shadow-none' : 'bg-ocean text-white hover:bg-ocean/90 shadow-teal-900/20'}`}
                               >
                                 {bookingStatus === 'loading' ? (
                                   <Loader2 className="animate-spin" size={24} />
@@ -1750,7 +1805,7 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center" aria-hidden="true">
-                    <OcenaLogo className="text-gold w-6 h-6" strokeWidth={2} />
+                    <OcenaLogo className="text-gold w-6 h-6" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xl font-bold tracking-tighter leading-none">OCENA</span>

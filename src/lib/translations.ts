@@ -124,7 +124,9 @@ export const translations = {
       nextStep: 'Tiếp theo',
       backStep: 'Quay lại bước trước',
       incompleteSearch: 'Vui lòng điền đủ Ngày Đến, Ngày Đi và Số Khách',
-      fullNamePlaceholder: 'Họ và tên của bạn'
+      fullNamePlaceholder: 'Họ và tên của bạn',
+      longTermNote: '* Giá không bao gồm tiền điện theo mức sử dụng (4,200vnd/KWH) và tiền nước là 100,000vnd/người/tháng.',
+      shortTermNote: '* Giá đã bao gồm tất cả chi phí (all-in). Khách được dọn dẹp hàng tuần và thay khăn tắm, khăn mặt.'
     },
     footer: {
       description: 'Trải nghiệm không gian sống đẳng cấp bên bờ biển. Chúng tôi cam kết mang lại sự hài lòng tuyệt đối cho kỳ nghỉ của bạn.',
@@ -394,7 +396,9 @@ export const translations = {
       nextStep: 'Next Step',
       backStep: 'Back to previous step',
       incompleteSearch: 'Please fill in Check-in, Check-out and Guests',
-      fullNamePlaceholder: 'Your full name'
+      fullNamePlaceholder: 'Your full name',
+      longTermNote: '* Price excludes electricity (4,200vnd/KWH) and water (100,000vnd/person/month) based on usage.',
+      shortTermNote: '* All-in price including weekly cleaning and fresh towels replacement.'
     },
     footer: {
       description: 'Experience high-class living by the sea. We are committed to absolute satisfaction for your stay.',
